@@ -3,44 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <title>설문 페이지</title>
-  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <h1>설문에 응답해주세요</h1>
   <form id="surveyForm">
-    <label>1. 오늘 기분은?
-      <select name="q1" required>
-        <option value="">선택</option>
-        <option>좋음</option>
-        <option>보통</option>
-        <option>나쁨</option>
-      </select>
-    </label><br/><br/>
-    <label>2. 자유롭게 의견을 남겨주세요:
-      <textarea name="q2" rows="4" cols="40"></textarea>
-    </label><br/><br/>
+    <label>파트: <input name="part" required></label><br>
+    <label>이름: <input name="name" required></label><br>
+    <!-- 문항 q1 ~ q10 예시 -->
+    <div id="questions">
+      <label>1. 질문1: <input name="q1" required></label><br>
+      <label>2. 질문2: <input name="q2" required></label><br>
+      <!-- ... -->
+      <label>10. 질문10: <input name="q10" required></label><br>
+    </div>
     <button type="submit">제출</button>
   </form>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
-  const params = new URLSearchParams(location.search);
-  const part = params.get('part'),
-        name = params.get('name');
+    // 1) Firebase 초기화 (복사해온 설정으로 교체하세요)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
+      authDomain: "survey-46c04.firebaseapp.com",
+      projectId: "survey-46c04",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  document.getElementById('surveyForm')
-    .addEventListener('submit', e => {
+    // 2) 폼 제출 시 Firestore에 저장
+    document.getElementById('surveyForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const q1 = e.target.q1.value;
-      const q2 = e.target.q2.value;
-      // localStorage 에 기존 응답 불러오기
-      const responses = JSON.parse(localStorage.getItem('responses') || '[]');
-      // 새 응답 추가
-      responses.push({ part, name, q1, q2, time: new Date().toISOString() });
-      localStorage.setItem('responses', JSON.stringify(responses));
-      // 결과 페이지로 이동
-      location.href = 'results.html';
+      const form = e.target;
+      // 응답 객체 만들기
+      const data = {
+        part: form.part.value,
+        name: form.name.value,
+        time: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      for (let i = 1; i <= 10; i++) {
+        data[`q${i}`] = form[`q${i}`].value;
+      }
+      try {
+        await db.collection('responses').add(data);
+        alert('제출되었습니다! 감사합니다.');
+        location.href = 'results.html';
+      } catch (err) {
+        console.error(err);
+        alert('전송에 실패했습니다.');
+      }
     });
-</script>
-
+  </script>
 </body>
 </html>
