@@ -1,6 +1,6 @@
 [build]
-  publish   = "Desktop/survey"
-  functions = "Desktop/survey/functions"
+  publish   = "."
+  functions = "functions"
   command   = ""
 
 [[redirects]]
