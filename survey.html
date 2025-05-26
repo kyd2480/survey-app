@@ -23,35 +23,24 @@
   </form>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const part = params.get('part');
-    const name = params.get('name');
+  const params = new URLSearchParams(location.search);
+  const part = params.get('part'),
+        name = params.get('name');
 
-    document.getElementById('surveyForm')
-      .addEventListener('submit', async e => {
-        e.preventDefault();
-        const data = { part, name,
-          q1: e.target.q1.value,
-          q2: e.target.q2.value
-        };
+  document.getElementById('surveyForm')
+    .addEventListener('submit', e => {
+      e.preventDefault();
+      const q1 = e.target.q1.value;
+      const q2 = e.target.q2.value;
+      // localStorage 에 기존 응답 불러오기
+      const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+      // 새 응답 추가
+      responses.push({ part, name, q1, q2, time: new Date().toISOString() });
+      localStorage.setItem('responses', JSON.stringify(responses));
+      // 결과 페이지로 이동
+      location.href = 'results.html';
+    });
+</script>
 
-        // Netlify Functions 경로 (루트 기준)
-        const res = await fetch(
-          '/.netlify/functions/submit-survey',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          }
-        );
-
-        if (res.ok) {
-          alert('전송 완료!');
-          location.href = 'index.html';
-        } else {
-          alert('전송 실패');
-        }
-      });
-  </script>
 </body>
 </html>
