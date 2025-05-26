@@ -9,50 +9,54 @@
   <table id="respTable" border="1" cellpadding="6">
     <thead>
       <tr>
-        <th>시간</th><th>파트</th><th>이름</th><th>질문1</th><th>질문2</th>
+        <th>시간</th><th>파트</th><th>이름</th><th>질문1</th><th>질문2</th><th>다운로드</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
-  <button id="downloadCsv">CSV 다운로드</button>
 
   <script>
-    // 1) 로컬스토리지에서 응답 불러와 표에 그리기
+    // 로컬스토리지에서 응답 불러오기
     const responses = JSON.parse(localStorage.getItem('responses') || '[]');
     const tbody = document.querySelector('#respTable tbody');
-    responses.forEach(r => {
+
+    // CSV 문자열 생성(한 줄용)
+    function makeCsvRow(r) {
+      const cells = [r.time, r.part, r.name, r.q1, r.q2]
+        .map(cell => `"${cell.replace(/"/g,'""')}"`)
+        .join(',');
+      return ['시간,파트,이름,질문1,질문2', cells].join('\r\n');
+    }
+
+    // 각 응답마다 테이블 행 추가
+    responses.forEach((r, idx) => {
       const tr = document.createElement('tr');
       ['time','part','name','q1','q2'].forEach(key => {
         const td = document.createElement('td');
         td.textContent = r[key];
         tr.appendChild(td);
       });
-      tbody.appendChild(tr);
-    });
-
-    // 2) CSV 문자열 생성 함수
-    function makeCsv(arr) {
-      const header = ['시간','파트','이름','질문1','질문2'];
-      const rows = arr.map(r =>
-        [r.time, r.part, r.name, r.q1, r.q2]
-          .map(cell => `"${cell.replace(/"/g,'""')}"`)
-          .join(',')
-      );
-      return [header.join(','), ...rows].join('\r\n');
-    }
-
-    // 3) 다운로드 버튼 핸들러
-    document.getElementById('downloadCsv')
-      .addEventListener('click', () => {
-        const csv = makeCsv(responses);
+      // 다운로드 버튼
+      const btnTd = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.textContent = '다운로드';
+      btn.addEventListener('click', () => {
+        const csv = makeCsvRow(r);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+        // 각 사용자별 파일명: 이름_타임스탬프.csv
+        const safeName = r.name.replace(/\s+/g,'_');
+        a.download = `${safeName}_${Date.now()}.csv`;
         a.href = url;
-        a.download = `survey_responses_${Date.now()}.csv`;
         a.click();
         URL.revokeObjectURL(url);
       });
+      btnTd.appendChild(btn);
+      tr.appendChild(btnTd);
+
+      tbody.appendChild(tr);
+    });
   </script>
 </body>
 </html>
