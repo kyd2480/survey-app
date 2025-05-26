@@ -1,5 +1,4 @@
 // functions/submit-survey.js
-require('dotenv').config()
 const nodemailer = require('nodemailer');
 
 exports.handler = async (event) => {

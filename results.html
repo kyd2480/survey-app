@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>설문 결과</title>
+</head>
+<body>
+  <h1>설문 응답 목록</h1>
+  <table id="respTable" border="1" cellpadding="6">
+    <thead>
+      <tr>
+        <th>시간</th><th>파트</th><th>이름</th><th>질문1</th><th>질문2</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button id="downloadCsv">CSV 다운로드</button>
+
+  <script>
+    // 1) 로컬스토리지에서 응답 불러와 표에 그리기
+    const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+    const tbody = document.querySelector('#respTable tbody');
+    responses.forEach(r => {
+      const tr = document.createElement('tr');
+      ['time','part','name','q1','q2'].forEach(key => {
+        const td = document.createElement('td');
+        td.textContent = r[key];
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    // 2) CSV 문자열 생성 함수
+    function makeCsv(arr) {
+      const header = ['시간','파트','이름','질문1','질문2'];
+      const rows = arr.map(r =>
+        [r.time, r.part, r.name, r.q1, r.q2]
+          .map(cell => `"${cell.replace(/"/g,'""')}"`)
+          .join(',')
+      );
+      return [header.join(','), ...rows].join('\r\n');
+    }
+
+    // 3) 다운로드 버튼 핸들러
+    document.getElementById('downloadCsv')
+      .addEventListener('click', () => {
+        const csv = makeCsv(responses);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `survey_responses_${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+  </script>
+</body>
+</html>
