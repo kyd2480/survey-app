@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>설문 페이지</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <h1>설문에 응답해주세요</h1>
+  <form id="surveyForm">
+    <label>1. 오늘 기분은?
+      <select name="q1" required>
+        <option value="">선택</option>
+        <option>좋음</option>
+        <option>보통</option>
+        <option>나쁨</option>
+      </select>
+    </label><br/><br/>
+    <label>2. 자유롭게 의견을 남겨주세요:
+      <textarea name="q2" rows="4" cols="40"></textarea>
+    </label><br/><br/>
+    <button type="submit">제출</button>
+  </form>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const part = params.get('part');
+    const name = params.get('name');
+
+    document.getElementById('surveyForm')
+      .addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = { part, name,
+          q1: e.target.q1.value,
+          q2: e.target.q2.value
+        };
+
+        // Netlify Functions 경로 (루트 기준)
+        const res = await fetch(
+          '/.netlify/functions/submit-survey',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          }
+        );
+
+        if (res.ok) {
+          alert('전송 완료!');
+          location.href = 'index.html';
+        } else {
+          alert('전송 실패');
+        }
+      });
+  </script>
+</body>
+</html>
