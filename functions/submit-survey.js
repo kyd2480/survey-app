@@ -12,8 +12,8 @@ exports.handler = async (event) => {
     port: 587,
     secure: false,
     auth: {
-      user: "kyd9792@gmail.com",
-      pass: "kkec-pahz-hlxu-imxm"
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     }
   });
 
