@@ -2,16 +2,28 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>응답 리스트</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <h1>설문 응답 목록</h1>
   <table id="respTable" border="1" cellpadding="6">
     <thead>
       <tr>
-        <th>시간</th><th>파트</th><th>이름</th>
-        <!-- q1 ~ q10 헤더 -->
-        <th>질문1</th><th>질문2</th><!-- ... --><th>질문10</th>
+        <th>파트</th>
+        <th>이름</th>
+        <th>근태(출근) 상태는 양호한가요?</th>
+        <th>인사성이 좋은가요? 비속어나 욕설을 사용하지 않고 바른말을 잘 사용하는 편인가요?</th>
+        <th>시간제, 정직원, 장애우 근로자를 구분하지 않고 모두를 존중하는 예의바른 태도를 가지고 있나요?</th>
+        <th>관계성이 좋은 편인가요?</th>
+        <th>타 부서의 도움요청에 적극 협조하고 참여함에 도움이 되는 편인가요?</th>
+        <th>산만하지 않고 일에 집중력이 좋은 편인가요?</th>
+        <th>같이 근무함에 있어 밝고 긍정적인 분위기를 조성하는 편인가요?</th>
+        <th>상대방의 의견을 인정하고 수용하며 대화·소통이 잘 되는 편인가요?</th>
+        <th>모든 일에 솔선수범하며 적극적으로 근무하나요?</th>
+        <th>말은 정확하게 책임감이 강한 편인가요?</th>
+        <th>회사 및 관리자의 지시를 잘 이행하고 따르는 편인가요?</th>
         <th>다운로드</th>
       </tr>
     </thead>
@@ -22,64 +34,75 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
-    // 1) Firebase 초기화 (survey.html과 동일하게)
+    // 1) Firebase 초기화 (본인 정보로 교체)
     const firebaseConfig = {
-      apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
-      authDomain: "survey-46c04.firebaseapp.com",
-      projectId: "survey-46c04",
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // 2) Firestore에서 응답 불러와 테이블에 렌더링
     const tbody = document.querySelector('#respTable tbody');
-
-    // 2) Firestore에서 응답 불러오기
     db.collection('responses').orderBy('time').get()
       .then(snapshot => {
         snapshot.forEach(doc => {
           const r = doc.data();
           const tr = document.createElement('tr');
-          // 시간, 파트, 이름
-          const timeTd = document.createElement('td');
-          timeTd.textContent = r.time?.toDate().toLocaleString() || '';
-          tr.appendChild(timeTd);
 
-          ['part','name'].forEach(key => {
+          // 셀 값 배열
+          const cells = [
+            r.part,
+            r.name,
+            r.q1, r.q2, r.q3, r.q4, r.q5,
+            r.q6, r.q7, r.q8, r.q9, r.q10
+          ];
+          cells.forEach(text => {
             const td = document.createElement('td');
-            td.textContent = r[key];
+            td.textContent = text ?? '';
             tr.appendChild(td);
           });
 
-          // q1~q10
-          for (let i = 1; i <= 10; i++) {
-            const td = document.createElement('td');
-            td.textContent = r[`q${i}`] || '';
-            tr.appendChild(td);
-          }
-
-          // 다운로드 버튼
+          // 다운로드 셀
           const btnTd = document.createElement('td');
           const btn = document.createElement('button');
           btn.textContent = '다운로드';
           btn.addEventListener('click', () => {
-            // CSV 헤더 및 행 생성
-            const header = ['시간','파트','이름'];
-            for (let i = 1; i <= 10; i++) header.push(`질문${i}`);
-            const row = [r.time.toDate().toISOString(), r.part, r.name];
-            for (let i = 1; i <= 10; i++) row.push(r[`q${i}`] || '');
-            const csv = [
-              header.join(','),
-              row.map(c => `"${(c+'').replace(/"/g,'""')}"`).join(',')
-            ].join('\r\n');
+            // 헤더 텍스트
+            const headers = [
+              '파트',
+              '이름',
+              '근태(출근) 상태는 양호한가요?',
+              '인사성이 좋은가요? 비속어나 욕설을 사용하지 않고 바른말을 잘 사용하는 편인가요?',
+              '시간제, 정직원, 장애우 근로자를 구분하지 않고 모두를 존중하는 예의바른 태도를 가지고 있나요?',
+              '관계성이 좋은 편인가요?',
+              '타 부서의 도움요청에 적극 협조하고 참여함에 도움이 되는 편인가요?',
+              '산만하지 않고 일에 집중력이 좋은 편인가요?',
+              '같이 근무함에 있어 밝고 긍정적인 분위기를 조성하는 편인가요?',
+              '상대방의 의견을 인정하고 수용하며 대화·소통이 잘 되는 편인가요?',
+              '모든 일에 솔선수범하며 적극적으로 근무하나요?',
+              '말은 정확하게 책임감이 강한 편인가요?',
+              '회사 및 관리자의 지시를 잘 이행하고 따르는 편인가요?'
+            ];
+            // row 값(위 headers 순서에 맞춰)
+            const row = cells;
+
+            // UTF-8 BOM을 붙여 CSV 생성
+            const bom = '\uFEFF';
+            const csv = bom
+              + headers.join(',') + '\r\n'
+              + row.map(c => `"${(c+'').replace(/"/g,'""')}"`).join(',');
 
             // 파일 다운로드
-            const blob = new Blob([csv], { type: 'text/csv' });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            const safeName = r.name.replace(/\s+/g,'_');
-            a.download = `${safeName}_${doc.id}.csv`;
+            const safePart = (r.part || '').replace(/\s+/g, '_');
+            a.download = `${safePart}_${r.name || 'unknown'}_${doc.id}.csv`;
+            a.href = url;
             a.click();
-            URL.revokeObjectURL(a.href);
+            URL.revokeObjectURL(url);
           });
           btnTd.appendChild(btn);
           tr.appendChild(btnTd);
@@ -87,7 +110,9 @@
           tbody.appendChild(tr);
         });
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error('응답 로드 실패:', err);
+      });
   </script>
 </body>
 </html>
