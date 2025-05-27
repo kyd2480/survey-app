@@ -18,11 +18,9 @@
     <table>
       <thead>
         <tr>
-          <th>대분류</th>
-          <th>중분류</th>
           <th>질문</th>
-          <th>네 맞습니다</th>
-          <th>좀 부족합니다</th>
+          <th>네</th>
+          <th>보통</th>
           <th>아니오</th>
           <th>해당사항없습니다</th>
         </tr>
@@ -89,13 +87,11 @@
       const tr = document.createElement('tr');
       tr.classList.add('question');
       // 대분류, 중분류, 질문 셀
-      ['big','mid','text'].forEach(key => {
-        const td = document.createElement('td');
-        td.textContent = q[key];
-        tr.appendChild(td);
-      });
+      const txtTd = document.createElement('td');
+      txtTd.textContent = q.text;
+      tr.appendChild(txtTd);
       // 4지선다 라디오 버튼
-      ['네 맞습니다','좀 부족합니다','아니오','해당사항없습니다'].forEach((label, idx) => {
+      ['','','',''].forEach((label, idx) => {
         const td = document.createElement('td');
         const inp = document.createElement('input');
         inp.type = 'radio';
