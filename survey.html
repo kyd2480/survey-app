@@ -36,30 +36,37 @@
       projectId: "survey-46c04",
     };
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+const db = firebase.firestore();
 
-    // 2) 폼 제출 시 Firestore에 저장
-    document.getElementById('surveyForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const form = e.target;
-      // 응답 객체 만들기
-      const data = {
-        part: form.part.value,
-        name: form.name.value,
-        time: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      for (let i = 1; i <= 10; i++) {
-        data[`q${i}`] = form[`q${i}`].value;
-      }
-      try {
-        await db.collection('responses').add(data);
-        alert('제출되었습니다! 감사합니다.');
-        location.href = 'results.html';
-      } catch (err) {
-        console.error(err);
-        alert('전송에 실패했습니다.');
-      }
+// 2) 폼 제출 시 Firestore에 저장
+document.getElementById('surveyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+
+  // 기본 필드
+  const data = {
+    part: form.part.value,
+    name: form.name.value,
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  // q로 시작하는 모든 입력(input, textarea, select) 요소 찾아서 수집
+  Array.from(form.elements)
+    .filter(el => el.name && el.name.startsWith('q'))
+    .forEach(el => {
+      data[el.name] = el.value;
     });
+
+  try {
+    await db.collection('responses').add(data);
+    alert('제출되었습니다! 결과 페이지로 이동합니다.');
+    form.reset();
+    location.href = 'results.html';
+  } catch (err) {
+    console.error('Firestore 저장 실패:', err);
+    alert('전송에 실패했습니다. 다시 시도해주세요.');
+  }
+});
   </script>
 </body>
 </html>
