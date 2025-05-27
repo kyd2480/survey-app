@@ -1,23 +1,82 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>시작 페이지</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>설문 시작</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+      background: #f0f2f5;
+    }
+    .container {
+      background: #fff;
+      padding: 2rem 3rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    label {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1rem;
+      margin-top: 0.3rem;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      background: #0066ff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0055dd;
+    }
+  </style>
 </head>
 <body>
-  <h1>설문 시작</h1>
-  <form id="startForm">
-    <label>파트: <input type="text" name="part" required></label><br/>
-    <label>이름: <input type="text" name="name" required></label><br/>
-    <button type="submit">설문 시작</button>
-  </form>
+  <div class="container">
+    <h1>설문 시작</h1>
+    <form id="startForm">
+      <label>
+        부서
+        <input name="part" type="text" placeholder="ex : 사뿐, 2F, 젝시1조, 젝시양품, 젝시교반, 젝시새벽 " required>
+      </label>
+      <label>
+        이름
+        <input name="name" type="text" placeholder="이름을 입력하세요" required>
+      </label>
+      <button type="submit">설문 시작하기</button>
+    </form>
+  </div>
+
   <script>
     document.getElementById('startForm').addEventListener('submit', e => {
       e.preventDefault();
-      const p = e.target.part.value;
-      const n = e.target.name.value;
-      location.href = `survey.html?part=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}`;
+      const p = encodeURIComponent(e.target.part.value);
+      const n = encodeURIComponent(e.target.name.value);
+      location.href = `survey.html?part=${p}&name=${n}`;
     });
   </script>
 </body>
