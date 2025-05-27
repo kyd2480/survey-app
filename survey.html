@@ -62,6 +62,7 @@
     const params = new URLSearchParams(location.search);
     const part = params.get('part') || 'unknown_part';
     const name = params.get('name') || 'unknown_name';
+    const manager  = params.get('manager') || '';
 
     // 2) 문항 배열 정의: {big, mid, text}
     const questions = [
@@ -143,6 +144,7 @@
       const data = {
         part,
         name,
+        manager,
         time: firebase.firestore.FieldValue.serverTimestamp()
       };
       // q1~qN 수집

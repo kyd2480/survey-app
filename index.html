@@ -69,7 +69,7 @@
       </label>
       <label>
         평가자
-        <input name="manager" type="text" placeholder="이름을 입력하세요" >
+        <input name="manager" type="text" placeholder="평가자 이름을 입력하세요" >
       </label>
       <button type="submit">설문 시작하기</button>
       <button type="button" class="secondary" id="viewResults">응답 목록 보기</button>
@@ -83,13 +83,14 @@
       e.preventDefault();
       const part = e.target.part.value.trim();
       const name = e.target.name.value.trim();
+      const manager = e.target.manager.value.trim();
       if (!part || !name) {
         alert('파트와 이름을 모두 입력/선택해주세요.');
         return;
       }
       const p = encodeURIComponent(part);
       const n = encodeURIComponent(name);
-      location.href = `survey.html?part=${p}&name=${n}`;
+      location.href = `survey.html?part=${encodeURIComponent(part)}&name=${encodeURIComponent(name)}&manager=${encodeURIComponent(manager)}`;
     });
 
     // 응답 목록 보기
