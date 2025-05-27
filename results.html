@@ -54,8 +54,8 @@
       <tr>
         <th><input type="checkbox" id="chkAll"></th>
         <th>파트</th>
-        <th>평가대상자</th>
         <th>평가자</th>
+        <th>평가대상자</th>
         <th>다운로드</th>
       </tr>
     </thead>
@@ -128,7 +128,7 @@
           tr.appendChild(chkTd);
 
           // 파트, 이름, 평가자
-          ['part', 'name', 'manager'].forEach(key => {
+          ['part', 'manager', 'name'].forEach(key => {
             const td = document.createElement('td');
             td.textContent = r[key] || '';
             tr.appendChild(td);
@@ -186,7 +186,7 @@
 
     // HTML → Blob + 파일명 생성
     function makeExcelFile(r) {
-      const metaH = ['부서', '이름', '평가자'];
+      const metaH = ['부서', '평가자', '평가대상자자'];
       const surveyH = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
       const opts = ['네', '보통', '아니오', '해당사항없습니다'];
 

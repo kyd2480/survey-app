@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,24 +15,28 @@
       font-family: sans-serif;
       background: #f0f2f5;
     }
+
     .container {
       background: #fff;
       padding: 2rem 3rem;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       max-width: 400px;
       width: 90%;
     }
+
     h1 {
       font-size: 1.8rem;
       margin-bottom: 1.5rem;
       text-align: center;
     }
+
     label {
       display: block;
       font-size: 1rem;
       margin-bottom: 1rem;
     }
+
     input {
       width: 100%;
       padding: 0.6rem;
@@ -39,6 +44,7 @@
       margin-top: 0.3rem;
       box-sizing: border-box;
     }
+
     button {
       width: 100%;
       padding: 0.8rem;
@@ -50,26 +56,28 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background: #0055dd;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>질문에 성의껏 답해주세요!</h1>
     <form id="startForm">
       <label>
         부서
-        <input name="part" type="text" placeholder="ex : 사뿐, 2F, 젝시1조, 젝시양품, 젝시교반, 젝시새벽 " >
-      </label>
-      <label>
-        평가 대상자
-        <input name="name" type="text" placeholder="이름을 입력하세요" >
+        <input name="part" type="text" placeholder="ex : 사뿐, 2F, 젝시1조, 젝시양품, 젝시교반, 젝시새벽 ">
       </label>
       <label>
         평가자
-        <input name="manager" type="text" placeholder="평가자 이름을 입력하세요" >
+        <input name="manager" type="text" placeholder="평가자 이름을 입력하세요">
+      </label>
+      <label>
+        평가 대상자
+        <input name="name" type="text" placeholder="이름을 입력하세요">
       </label>
       <button type="submit">설문 시작하기</button>
       <button type="button" class="secondary" id="viewResults">응답 목록 보기</button>
@@ -104,4 +112,5 @@
     });
   </script>
 </body>
+
 </html>
