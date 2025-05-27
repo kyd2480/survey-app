@@ -7,28 +7,52 @@
   <title>응답 리스트</title>
   <link rel="stylesheet" href="css/styles.css" />
   <style>
+    body {
+      padding: 1rem;
+      font-family: sans-serif;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    button {
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+
     table {
       border-collapse: collapse;
       width: 100%;
+      margin-top: 1rem;
     }
 
     th,
     td {
       border: 1px solid #ddd;
       padding: 8px;
+      text-align: center;
     }
 
     th {
       background: #f4f4f4;
+    }
+
+    td.question-text {
+      text-align: left;
     }
   </style>
 </head>
 
 <body>
   <h1>설문 응답 목록</h1>
+  <button id="downloadAll">전체 다운로드</button>
+  <button id="downloadSel">선택 다운로드</button>
   <table id="respTable">
     <thead>
       <tr>
+        <th><input type="checkbox" id="chkAll"></th>
         <th>파트</th>
         <th>평가대상자</th>
         <th>평가자</th>
@@ -42,7 +66,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
-    // Firebase 초기화 (survey.html과 동일)
+    // Firebase 초기화
     const firebaseConfig = {
       apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
       authDomain: "survey-46c04.firebaseapp.com",
@@ -51,7 +75,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // survey.html 과 동일한 questions 배열
+    // 문항 정의
     const questions = [
       { big: "인성 및 기본역량", mid: "기본인성", text: "근태(출근) 상태는 양호한가요?" },
       { big: "", mid: "", text: "인사성이 좋은가요? 비속어나 욕설을 사용하지 않고 바른말을 잘 사용하는 편인가요?" },
@@ -68,116 +92,128 @@
       { big: "인원운영역량", mid: "작업지시", text: "정확한 작업지시를 하는편인가요?" },
       { big: "", mid: "공정성", text: "편향적이지않고 모두에게 공정한가요?" },
       { big: "", mid: "효율성", text: "인원 운영은 효율적으로 운영하고 있나요?" },
-      { big: "", mid: "통솔력", text: "인원 통솔력은 갖추고 있나요? 팀원들에게 존중받고, 본인의 지시에 적극적으로 팔로우 가능한 역량" },
+      { big: "", mid: "통솔력", text: "인원 *통솔력은 갖추고 있나요? *팀원들에게 존중받고, 본인의 지시에 적극적으로 팔로우 가능한 역량" },
       { big: "", mid: "관리", text: "관리하는 팀원들에게 관심갖고 필요한 역량을 끌어내는 편인가요?" },
       { big: "문제해결능력", mid: "우선순위", text: "업무의 우선순위를 잘 구분하고 계획적으로 진행하나요?" },
       { big: "", mid: "판단력", text: "문제(이슈) 발생시 빠른판단을 하는편인가요?" },
       { big: "", mid: "보고/공유", text: "문제(이슈) 발생시 빠른 보고와 현장공유를 잘 하는편인가요?" },
       { big: "", mid: "해결능력", text: "문제(이슈) 발생시 해결능력이 좋은 편인가요?" },
       { big: "화주사 소통/관계성", mid: "업체조율", text: "화주사와 관계성 및 이슈사항 조율을 원할하게 잘하는 편인가요?" },
-      { big: "물류관리", mid: "시설관리", text: "물류内 모든시설과 안전사고에 관해 책임있게 점검하고 관리를 잘하는 편인가요?" },
-      { big: "테크닉", mid: "문화 운영능력", text: "문화 운영과 개선은 원활히 하는편인가요?" },
-      { big: "", mid: "매니지먼트", text: "직원들 매니지먼트 역할은 잘하는 편인가요?" },
+      { big: "물류관리", mid: "시설관리", text: "물류內 모든시설과 안전사고에 관해 책임있게 점검하고 관리를 잘하는 편인가요?" },
+      { big: "*테크닉", mid: "문화 운영능력", text: "새로고침 *문화 운영과 개선은 원할히 하는편인가요? *인사/조회/근태관리/환경정리/존중,존칭 및 존댓말/연장근무/휴게시간등" },
+      { big: "", mid: "★매니지먼트", text: "직원들 *매니지먼트 역할은 잘하는 편인가요? *면담을 통한 설명/이해/설득/회유/개선/조치/해소/고충처리등 '직원과의 면담능력'" },
       { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
-      { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }
+      { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" },
     ];
 
     const tbody = document.querySelector('#respTable tbody');
+    let allResponses = [];
 
+    // 1) 데이터 로드 & 테이블 채우기
     db.collection('responses').orderBy('time').get()
       .then(snapshot => {
         snapshot.forEach(doc => {
-          const r = doc.data();
-          const tr = document.createElement('tr');
+          const r = { id: doc.id, ...doc.data() };
+          allResponses.push(r);
 
-          // 파트, 이름 셀
+          const tr = document.createElement('tr');
+          // 체크박스
+          const chkTd = document.createElement('td');
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.classList.add('rowChk');
+          chk.dataset.id = doc.id;
+          chkTd.appendChild(chk);
+          tr.appendChild(chkTd);
+
+          // 파트, 이름, 평가자
           ['part', 'name', 'manager'].forEach(key => {
             const td = document.createElement('td');
             td.textContent = r[key] || '';
             tr.appendChild(td);
           });
 
-          // 다운로드 버튼
-          const td = document.createElement('td');
+          // 행별 다운로드 버튼
+          const btnTd = document.createElement('td');
           const btn = document.createElement('button');
           btn.textContent = '다운로드';
-          btn.addEventListener('click', () => {
-            // 1) 메타 헤더 & 값
-            const metaH = ['부서', '이름', '평가자'];
-            const metaV = [r.part, r.name, r.manager || ''];
-
-            // 2) 옵션 헤더 포함한 설문 헤더
-            const surveyH = ['대분류', '중분류', '질문', '네', '좀 부족합니다', '아니오', '해당사항없습니다'];
-
-            // 3) 설문 응답행: 각 질문마다 ○● 생성
-            const surveyRows = questions.map((q, i) => {
-              const answer = r['q' + (i + 1)] || '';
-              const opts = ['네', '좀 부족합니다', '아니오', '해당사항없습니다'];
-              const circles = opts.map(label =>
-                label === answer ? '●' : '○'
-              );
-              return `
-      <tr>
-        <td>${q.big}</td>
-        <td>${q.mid}</td>
-        <td>${q.text}</td>
-        ${circles.map(c => `<td style="text-align:center">${c}</td>`).join('')}
-      </tr>
-    `;
-            }).join('');
-
-            // 4) 완성된 HTML 테이블 문자열
-            const html = `
-    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
-    <head><meta charset="utf-8"></head>
-    <body>
-      <table border="1">
-        <!-- 메타 헤더 -->
-        <tr>
-          ${metaH.map(h =>
-              `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
-            ).join('')}
-        </tr>
-        <!-- 메타 값 -->
-        <tr>
-          ${metaV.map(v =>
-              `<td style="border:1px solid #000;padding:5px">${v}</td>`
-            ).join('')}
-        </tr>
-        <!-- 빈 줄 -->
-        <tr><td colspan="7"></td></tr>
-        <!-- 설문 헤더 -->
-        <tr>
-          ${surveyH.map(h =>
-              `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
-            ).join('')}
-        </tr>
-        <!-- 설문 응답행들 -->
-        ${surveyRows}
-      </table>
-    </body>
-    </html>
-  `.trim();
-
-            // 5) .xls 확장자로 다운로드
-            const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${r.part}_${r.name}_${doc.id}.xls`;
-            a.click();
-            URL.revokeObjectURL(url);
-          });
-
-
-
-          td.appendChild(btn);
-          tr.appendChild(td);
+          btn.addEventListener('click', () => downloadExcel([r]));
+          btnTd.appendChild(btn);
+          tr.appendChild(btnTd);
 
           tbody.appendChild(tr);
         });
+
+        // 전체 선택 토글
+        document.getElementById('chkAll').addEventListener('change', e => {
+          document.querySelectorAll('.rowChk')
+            .forEach(cb => cb.checked = e.target.checked);
+        });
+
+        // 전체 다운로드
+        document.getElementById('downloadAll').addEventListener('click', () => {
+          downloadExcel(allResponses);
+        });
+
+        // 선택 다운로드
+        document.getElementById('downloadSel').addEventListener('click', () => {
+          const selIds = Array.from(document.querySelectorAll('.rowChk:checked'))
+            .map(cb => cb.dataset.id);
+          const sel = allResponses.filter(r => selIds.includes(r.id));
+          if (!sel.length) return alert('하나 이상 선택해주세요.');
+          downloadExcel(sel);
+        });
       })
-      .catch(err => console.error(err));
+      .catch(console.error);
+
+    // 2) 엑셀 다운로드 함수 (.xls HTML 방식)
+    function downloadExcel(responses) {
+      const metaH = ['부서', '이름', '평가자'];
+      const surveyH = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
+
+      // 각 응답마다 테이블 블록 생성
+      const blocks = responses.map(r => {
+        const metaRow = `
+          <tr>${metaH.map(h => `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`).join('')}</tr>
+          <tr>${[r.part, r.name, r.manager].map(v => `<td style="border:1px solid #000;padding:5px">${v || ''}</td>`).join('')}</tr>
+          <tr><td colspan="${surveyH.length}" style="border:none"></td></tr>
+        `;
+        const headerRow = `
+          <tr>${surveyH.map(h => `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`).join('')}</tr>
+        `;
+        const dataRows = questions.map((q, i) => {
+          const ans = r['q' + (i + 1)] || '';
+          const opts = ['네', '보통', '아니오', '해당사항없습니다'];
+          const cells = opts.map(label =>
+            `<td style="text-align:center;border:1px solid #000;padding:5px">${label === ans ? '●' : '○'}</td>`
+          ).join('');
+          return `
+            <tr>
+              <td style="border:1px solid #000;padding:5px">${q.big}</td>
+              <td style="border:1px solid #000;padding:5px">${q.mid}</td>
+              <td class="question-text" style="border:1px solid #000;padding:5px">${q.text}</td>
+              ${cells}
+            </tr>
+          `;
+        }).join('');
+        return metaRow + headerRow + dataRows;
+      }).join('<tr><td colspan="7" style="border:none;height:20px"></td></tr>');
+
+      const html = `
+        <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+        <head><meta charset="utf-8"></head>
+        <body><table>${blocks}</table></body>
+        </html>
+      `.trim();
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `responses_${Date.now()}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   </script>
 </body>
 
