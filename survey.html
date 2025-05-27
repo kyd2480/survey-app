@@ -114,9 +114,9 @@
       e.preventDefault();
       const form = e.target;
       const data = {
-        part: form.part.value,
-        name: form.name.value,
-        time: firebase.firestore.FieldValue.serverTimestamp()
+       part: part,    // URLSearchParams로 읽은 변수
+       name: name,    // URLSearchParams로 읽은 변수
+       time: firebase.firestore.FieldValue.serverTimestamp()
       };
       // radio q1~qN 수집
       questions.forEach((_,i) => {
