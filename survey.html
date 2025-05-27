@@ -105,16 +105,32 @@
       txtTd.textContent = q.text;
       tr.appendChild(txtTd);
       // 4지선다 라디오 버튼
-      ['','','',''].forEach((label, idx) => {
+      ['네 맞습니다.','좀 부족합니다.','아니오','해당사항 없습니다.'].forEach((label, idx) => {
         const td = document.createElement('td');
         const inp = document.createElement('input');
         inp.type = 'radio';
         inp.name = 'q'+(i+1);
-        inp.value = label;
+        inp.value = String(label);
         if(idx===0) inp.required = true;
+
         td.appendChild(inp);
-        td.appendChild(document.createTextNode(' '+label));
+         // 접근성(a11y) 용으로 텍스트는 스크린리더에만 보이게
+        const sr = document.createElement('span');
+        sr.textContent = String(val);
+        sr.style.position       = 'absolute';
+        sr.style.width          = '1px';
+        sr.style.height         = '1px';
+        sr.style.padding        = '0';
+        sr.style.margin         = '-1px';
+        sr.style.overflow       = 'hidden';
+        sr.style.clip           = 'rect(0,0,0,0)';
+        sr.style.whiteSpace     = 'nowrap';
+        sr.style.border         = '0';
+        td.appendChild(sr);
+
         tr.appendChild(td);
+        
+
       });
       tbody.appendChild(tr);
     });
