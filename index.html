@@ -68,6 +68,8 @@
         <input name="name" type="text" placeholder="이름을 입력하세요" required>
       </label>
       <button type="submit">설문 시작하기</button>
+      <button class="secondary" id="viewResults">응답 목록 보기</button>
+
     </form>
   </div>
 
@@ -77,6 +79,16 @@
       const p = encodeURIComponent(e.target.part.value);
       const n = encodeURIComponent(e.target.name.value);
       location.href = `survey.html?part=${p}&name=${n}`;
+    });
+
+    // 응답 목록 보기
+    document.getElementById('viewResults').addEventListener('click', () => {
+      const pwd = prompt('결과 페이지 접근을 위해 비밀번호를 입력하세요:');
+      if (pwd === '159357') {
+        window.location.href = 'results.html';
+      } else {
+        alert('비밀번호가 틀렸습니다.');
+      }
     });
   </script>
 </body>
