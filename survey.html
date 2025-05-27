@@ -95,64 +95,63 @@
       
     ];
 
-    // 3) 테이블에 동적으로 문항 그리기
+     // 4) 테이블 채우기
     const tbody = document.getElementById('questionBody');
     questions.forEach((q, i) => {
       const tr = document.createElement('tr');
       tr.classList.add('question');
-      // 대분류, 중분류, 질문 셀
+
+      // 질문 텍스트 셀
       const txtTd = document.createElement('td');
       txtTd.textContent = q.text;
+      txtTd.classList.add('question-text');
       tr.appendChild(txtTd);
-      // 4지선다 라디오 버튼
-      ['네 맞습니다.','좀 부족합니다.','아니오','해당사항 없습니다.'].forEach((label, idx) => {
+
+      // 라디오 버튼 4개
+      ['네','보통','아니오','해당사항없습니다'].forEach((label, idx) => {
         const td = document.createElement('td');
         const inp = document.createElement('input');
         inp.type = 'radio';
         inp.name = 'q'+(i+1);
-        inp.value = String(label);
-        if(idx===0) inp.required = true;
-
+        inp.value = label;
+        if (idx === 0) inp.required = true;
         td.appendChild(inp);
-         // 접근성(a11y) 용으로 텍스트는 스크린리더에만 보이게
+
+        // 스크린리더용 라벨 텍스트 숨김
         const sr = document.createElement('span');
-        sr.textContent = String(val);
-        sr.style.position       = 'absolute';
-        sr.style.width          = '1px';
-        sr.style.height         = '1px';
-        sr.style.padding        = '0';
-        sr.style.margin         = '-1px';
-        sr.style.overflow       = 'hidden';
-        sr.style.clip           = 'rect(0,0,0,0)';
-        sr.style.whiteSpace     = 'nowrap';
-        sr.style.border         = '0';
+        sr.textContent = label;
+        sr.style.position   = 'absolute';
+        sr.style.width      = '1px';
+        sr.style.height     = '1px';
+        sr.style.margin     = '-1px';
+        sr.style.padding    = '0';
+        sr.style.overflow   = 'hidden';
+        sr.style.clip       = 'rect(0,0,0,0)';
+        sr.style.whiteSpace = 'nowrap';
         td.appendChild(sr);
 
         tr.appendChild(td);
-        
-
       });
+
       tbody.appendChild(tr);
     });
 
-    // 4) 제출 시 Firestore 저장
+    // 5) 제출 처리
     document.getElementById('surveyForm').addEventListener('submit', async e => {
       e.preventDefault();
       const form = e.target;
       const data = {
-       part: part,    // URLSearchParams로 읽은 변수
-       name: name,    // URLSearchParams로 읽은 변수
-       time: firebase.firestore.FieldValue.serverTimestamp()
+        part,
+        name,
+        time: firebase.firestore.FieldValue.serverTimestamp()
       };
-      // radio q1~qN 수집
+      // q1~qN 수집
       questions.forEach((_,i) => {
-        const name = 'q'+(i+1);
-        data[name] = form[name].value;
+        data['q'+(i+1)] = form.elements['q'+(i+1)].value;
       });
       try {
         await db.collection('responses').add(data);
         alert('제출 성공! 첫 페이지로 이동합니다.');
-        form.reset();
         location.href = 'index.html';
       } catch(err) {
         console.error(err);
