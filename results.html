@@ -190,78 +190,82 @@
       const surveyH = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
       const opts = ['네', '보통', '아니오', '해당사항없습니다'];
 
-      // 1) 메타 영역
+      // 1) 메타 정보
       const metaRow = `
-      <tr>${metaH.map(h =>
-        `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
-      ).join('')}</tr>
-      <tr>${[r.part, r.name, r.manager].map(v =>
-        `<td style="border:1px solid #000;padding:5px">${v || ''}</td>`
-      ).join('')}</tr>
-      <tr><td colspan="${surveyH.length}" style="border:none;height:10px"></td></tr>
-    `;
+    <tr>${metaH.map(h => `<th style="…">${h}</th>`).join('')}</tr>
+    <tr>${[r.part, r.name, r.manager].map(v => `<td style="…">${v || ''}</td>`).join('')}</tr>
+  `;
 
-      // 2) 설문 헤더
+      // 2) 빈 줄로 구분
+      const spacer = `<tr><td colspan="${surveyH.length}" style="border:none;height:10px"></td></tr>`;
+
+      // 3) 설문 헤더
       const headerRow = `
-      <tr>${surveyH.map(h =>
-        `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
-      ).join('')}</tr>
-    `;
+    <tr>${surveyH.map(h => `<th style="…">${h}</th>`).join('')}</tr>
+  `;
 
-      // 3) 질문 그룹화(rowspan)
-      const groups = [];
+      // --- big/mid 병합용 rowspan 계산 ---
+      const bigSpans = [], midSpans = [];
       questions.forEach((q, i) => {
+        // big rowspan
         if (i === 0 || q.big !== questions[i - 1].big) {
-          groups.push({ big: q.big, items: [q] });
+          const count = questions.slice(i).findIndex(x => x.big !== q.big);
+          bigSpans[i] = (count < 0 ? questions.length - i : count);
         } else {
-          groups[groups.length - 1].items.push(q);
+          bigSpans[i] = 0;
+        }
+        // mid rowspan
+        if (i === 0 || q.mid !== questions[i - 1].mid) {
+          const count = questions.slice(i).findIndex(x => x.mid !== q.mid);
+          midSpans[i] = (count < 0 ? questions.length - i : count);
+        } else {
+          midSpans[i] = 0;
         }
       });
 
-      // 4) 그룹별 행 생성
-      const dataRows = groups.map(group => {
-        const len = group.items.length;
-        return group.items.map((q, idx) => {
-          const qi = questions.indexOf(q);
-          const ans = r['q' + (qi + 1)] || '';
-          // ○/● 생성
-          const circles = opts.map(label =>
-            `<td style="text-align:center;border:1px solid #000;padding:5px">` +
-            (label === ans ? '●' : '○') +
-            `</td>`
-          ).join('');
-          // rowspan 처리
-          const bigCell = group.big
-            ? `<td rowspan="${len}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${group.big}</td>`
-            : `<td style="border:1px solid #000;padding:5px"></td>`;
-          // mid, text 셀
-          const midCell = `<td style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${q.mid}</td>`;
-          const textCell = `<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>`;
+      // --- 설문 응답행 생성 ---
+      const dataRows = questions.map((q, i) => {
+        const ans = r['q' + (i + 1)] || '';
+        const circles = opts.map(label =>
+          `<td style="text-align:center;border:1px solid #000;padding:5px">` +
+          (label === ans ? '●' : '○') +
+          `</td>`
+        ).join('');
 
-          return `
-          <tr>
-            ${idx === 0 ? bigCell : ''}
-            ${midCell}
-            ${textCell}
-            ${circles}
-          </tr>
-        `;
-        }).join('');
+        // big cell (첫 등장에만 rowspan)
+        const bigCell = bigSpans[i]
+          ? `<td rowspan="${bigSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${q.big}</td>`
+          : '';
+        // mid cell (첫 등장에만 rowspan)
+        const midCell = midSpans[i]
+          ? `<td rowspan="${midSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${q.mid}</td>`
+          : '';
+        const textCell = `<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>`;
+
+        return `
+        <tr>
+          ${bigCell}
+          ${midCell}
+          ${textCell}
+          ${circles}
+        </tr>
+      `;
       }).join('');
 
-      // 전체 HTML
+      // 6) 최종 HTML 조합
       const html = `
-      <html xmlns:x="urn:schemas-microsoft-com:office:excel">
-      <head><meta charset="utf-8"></head>
-      <body>
-        <table border="1">
-          ${metaRow}
-          ${headerRow}
-          ${dataRows}
-        </table>
-      </body>
-      </html>
-    `.trim();
+    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head><meta charset="utf-8"></head>
+    <body>
+      <table border="1">
+        ${metaRow}
+        ${spacer}
+        ${headerRow}
+        ${dataRows}
+      </table>
+    </body>
+    </html>
+  `.trim();
 
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const filename = `${r.part}_${r.name}.xls`;
