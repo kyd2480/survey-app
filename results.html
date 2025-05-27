@@ -274,7 +274,7 @@
   `.trim();
 
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const filename = `${r.part}_${r.name}.xls`;
+      const filename = `${r.part}_${r.manager}.xls`;
       return { blob, filename };
     }
 
