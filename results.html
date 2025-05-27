@@ -90,27 +90,42 @@
           const btn = document.createElement('button');
           btn.textContent = '다운로드';
           btn.addEventListener('click', () => {
-            const metaH = ['부서','이름','평가자'];
+            const metaH = ['부서','평가대상자','평가자'];
             const metaV = [r.part, r.name, r.manager || '']
             .map(c => `"${(c+'').replace(/"/g,'""')}"`);
 
-            // CSV 헤더: 대분류,중분류,질문,응답
-            const qH = ['대분류','중분류','질문','응답'];
-            const qRows = questions.map((q,i) => {
-            const ans = r['q'+(i+1)] || '';
-            return [q.big, q.mid, q.text, ans]
-            .map(c => `"${(c+'').replace(/"/g,'""')}"`).join(','); 
-            });
+            // 2) 설문 헤더 (기존 질문 헤더 대신 옵션 칸 포함)
+          const surveyH = ['대분류','중분류','질문','네','보통','아니오','해당사항없습니다'];
 
+          // 3) 설문 응답행: 각 질문마다 ○● 표시
+          const surveyRows = questions.map((q,i) => {
+            // 사용자가 선택한 실제 값
+          const answer = r['q'+(i+1)] || '';
+          // 옵션 순서
+           const opts   = ['네','좀 부족합니다','아니오','해당사항없습니다'];
+          // 각 옵션별로 ● 또는 ○
+           const circles = opts.map(label =>
+          label === answer ? '●' : '○'
+           );
+           // 하나의 CSV 행으로
+           const cells = [
+           q.big, 
+           q.mid, 
+           q.text, 
+           ...circles
+          ].map(c => `"${(c+'').replace(/"/g,'""')}"`);
+          return cells.join(',');
+          });
 
-            // UTF-8 BOM
-            const bom = '\uFEFF';
-            const csv = [
-            bom + metaH.join(','),              // "부서,이름,평가자"
-            metaV.join(','),                    // 값 행
-            qH.join(','),                       // "대분류,중분류,질문,응답"
-            ...qRows                            // 각 문항별 행
-            ].join('\r\n');
+          // 4) CSV 조합 (BOM + 메타헤더 + 값 + 빈줄 + 설문헤더 + 설문행)
+          const bom = '\uFEFF';
+          const csv = [
+          bom + metaH.join(','),  // 부서,이름,평가자
+          metaV.join(','),        // 실제 값
+          '',                     // 빈 줄
+          surveyH.map(h => `"${h}"`).join(','), // 질문+옵션 헤더
+          ...surveyRows
+          ].join('\r\n');
 
 
             // 다운로드
