@@ -47,6 +47,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    const params = new URLSearchParams(location.search);
+    const part = params.get('part') || 'unknown_part';
+    const name = params.get('name') || 'unknown_name';
+
     // 2) 문항 배열 정의: {big, mid, text}
     const questions = [
       {big:"인성 및 기본역량", mid:"기본인성", text:"근태(출근) 상태는 양호한가요?"},
