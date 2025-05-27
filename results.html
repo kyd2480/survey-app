@@ -186,14 +186,14 @@
 
     // HTML → Blob + 파일명 생성
     function makeExcelFile(r) {
-      const metaH = ['부서', '평가자', '평가대상자자'];
+      const metaH = ['부서', '평가자', '평가대상자'];
       const surveyH = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
       const opts = ['네', '보통', '아니오', '해당사항없습니다'];
 
       // 1) 메타 정보
       const metaRow = `
     <tr>${metaH.map(h => `<th style="…">${h}</th>`).join('')}</tr>
-    <tr>${[r.part, r.name, r.manager].map(v => `<td style="…">${v || ''}</td>`).join('')}</tr>
+    <tr>${[r.part, r.manager, r.name].map(v => `<td style="…">${v || ''}</td>`).join('')}</tr>
   `;
 
       // 2) 빈 줄로 구분
