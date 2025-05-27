@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>설문 페이지</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    table { border-collapse: collapse; width:100%; }
+    th, td { border:1px solid #ddd; padding:8px; vertical-align: top; }
+    th { background:#f4f4f4; }
+    .question td { text-align: left; }
+  </style>
 </head>
 <body>
   <h1>설문에 응답해주세요</h1>
   <form id="surveyForm">
-    <label>파트: <input name="part" required></label><br>
-    <label>이름: <input name="name" required></label><br>
-    <!-- 질문 1~10 -->
-    <label>1. 근태(출근) 상태는 양호한가요? <input name="q1" required></label><br>
-    <label>2. 인사성이 좋은가요? <input name="q2" required></label><br>
-    <label>3. 모두를 존중하는 예의바른 태도를 가지고 있나요? <input name="q3" required></label><br>
-    <label>4. 관계성이 좋은 편인가요? <input name="q4" required></label><br>
-    <label>5. 타 부서 도움요청에 적극 협조하나요? <input name="q5" required></label><br>
-    <label>6. 산만하지 않고 집중력이 좋은 편인가요? <input name="q6" required></label><br>
-    <label>7. 밝고 긍정적인 분위기를 조성하나요? <input name="q7" required></label><br>
-    <label>8. 의견을 인정하고 대화·소통이 잘 되는 편인가요? <input name="q8" required></label><br>
-    <label>9. 솔선수범하며 적극적으로 근무하나요? <input name="q9" required></label><br>
-    <label>10. 지시를 정확히 이행하고 따르나요? <input name="q10" required></label><br>
-    <button type="submit">제출</button>
+    <table>
+      <thead>
+        <tr>
+          <th>대분류</th>
+          <th>중분류</th>
+          <th>질문</th>
+          <th>네 맞습니다</th>
+          <th>좀 부족합니다</th>
+          <th>아니오</th>
+          <th>해당사항없습니다</th>
+        </tr>
+      </thead>
+      <tbody id="questionBody">
+        <!-- JavaScript 가 이곳에 tr 을 채웁니다 -->
+      </tbody>
+    </table>
+    <button type="submit" style="margin-top:1em;">제출</button>
   </form>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
-    // ——————————————
-    // 1) Firebase 초기화
-    // 아래 YOUR_* 부분을 본인 Firebase 설정으로 교체하세요.
+    // 1) Firebase 초기화 (본인 설정으로 교체)
     const firebaseConfig = {
       apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
       authDomain: "survey-46c04.firebaseapp.com",
@@ -40,33 +47,85 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // ——————————————
-    // 2) 폼 제출 시 Firestore에 저장
+    // 2) 문항 배열 정의: {big, mid, text}
+    const questions = [
+      {big:"인성 및 기본역량", mid:"기본인성", text:"근태(출근) 상태는 양호한가요?"},
+      {big:"", mid:"", text:"인사성이 좋은가요? 비속어나 욕설을 사용하지 않고 바른말을 잘 사용하는 편인가요?"},
+      {big:"", mid:"", text:"비속어나 욕설을 사용하지않고 바른말을 잘 사용하는 편인가요?"},
+      {big:"", mid:"", text:"시간제, 정직원, 장애우 근로자를 구분하지 않고 모두를 존중하는 예의바른 태도를 가지고 있나요?"},
+      {big:"", mid:"관계성", text:"직원들과의 관계성이 좋은 편인가요?"},
+      {big:"", mid:"협조/참여", text:"타부서의 도움요청에 적극 협조하고 참여함에 도움이 되는 편인가요?"},
+      {big:"", mid:"집중력", text:"산만하지 않고 일에 집중력이 좋은 편인가요?"},
+      {big:"", mid:"분위기메이커", text:"같이 근무함에 있어 밝고 긍정적인 분위기를 조성하는 편인가요?"},
+      {big:"", mid:"소통", text:"상대방의 의견을 인정하고 수용하며 대화·소통이 잘 되는 편인가요?"},
+      {big:"", mid:"솔선수범", text:"모든 일에 솔선수범하며 적극적으로 근무하나요?"},
+      {big:"", mid:"책임감", text:"맡은역할에 책임감이 강한편인가요?"},
+      {big:"", mid:"지시이행", text:"회사 및 관리자의 지시를 잘 이행하고 따르는 편인가요?"},
+      {big:"인원운영역량", mid:"작업지시", text:"정확한 작업지시를 하는편인가요?"},
+      {big:"", mid:"공정성", text:"편향적이지않고 모두에게 공정한가요?"},
+      {big:"", mid:"효율성", text:"인원 운영은 효율적으로 운영하고 있나요?"},
+      {big:"", mid:"통솔력", text:"인원 *통솔력은 갖추고 있나요?\n *팀원들에게 존중받고, 본인의 지시에 적극적으로 팔로우 가능한 역량"},
+      {big:"", mid:"관리", text:"관리하는 팀원들에게 관심갖고 필요한 역량을 끌어내는 편인가요?"},
+      {big:"문제해결능력", mid:"우선순위", text:"업무의 우선순위를 잘 구분하고 계획적으로 진행하나요?"},
+      {big:"", mid:"판단력", text:"문제(이슈) 발생시 빠른판단을 하는편인가요?"},
+      {big:"", mid:"보고/공유", text:"문제(이슈) 발생시 빠른 보고와 현장공유를 잘 하는편인가요?"},
+      {big:"", mid:"해결능력", text:"문제(이슈) 발생시 해결능력이 좋은 편인가요?"},
+      {big:"화주사 소통/관계성", mid:"업체조율", text:"화주사와 관계성 및 이슈사항 조율을 원할하게 잘하는 편인가요?"},
+      {big:"물류관리", mid:"시설관리", text:"물류內 모든시설과 안전사고에 관해 책임있게 점검하고 관리를 잘하는 편인가요?"},
+      {big:"*테크닉", mid:"문화 운영능력", text:"새로고침 *문화 운영과 개선은 원할히 하는편인가요? -인사/조회/근태관리/환경정리/존중,존칭 및 존댓말/연장근무/휴게시간등"},
+      {big:"", mid:"★매니지먼트", text:"직원들 *매니지먼트 역할은 잘하는 편인가요? -면담을 통한 설명/이해/설득/회유/개선/조치/해소/고충처리등 '직원과의 면담능력'"},
+      {big:"", mid:"이미지메이킹", text:"본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?"},
+      {big:"개선/성장 가능성", mid:"가능성", text:"부족한 점은 개선하고 성장할 가능성이 있나요?"}
+      
+    ];
+
+    // 3) 테이블에 동적으로 문항 그리기
+    const tbody = document.getElementById('questionBody');
+    questions.forEach((q, i) => {
+      const tr = document.createElement('tr');
+      tr.classList.add('question');
+      // 대분류, 중분류, 질문 셀
+      ['big','mid','text'].forEach(key => {
+        const td = document.createElement('td');
+        td.textContent = q[key];
+        tr.appendChild(td);
+      });
+      // 4지선다 라디오 버튼
+      ['네 맞습니다','좀 부족합니다','아니오','해당사항없습니다'].forEach((label, idx) => {
+        const td = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = 'q'+(i+1);
+        inp.value = label;
+        if(idx===0) inp.required = true;
+        td.appendChild(inp);
+        td.appendChild(document.createTextNode(' '+label));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    // 4) 제출 시 Firestore 저장
     document.getElementById('surveyForm').addEventListener('submit', async e => {
       e.preventDefault();
       const form = e.target;
-
-      // 기본 필드
       const data = {
         part: form.part.value,
         name: form.name.value,
         time: firebase.firestore.FieldValue.serverTimestamp()
       };
-
-      // q1~q10 값 수집
-      Array.from(form.elements)
-        .filter(el => el.name && el.name.startsWith('q'))
-        .forEach(el => {
-          data[el.name] = el.value;
-        });
-
+      // radio q1~qN 수집
+      questions.forEach((_,i) => {
+        const name = 'q'+(i+1);
+        data[name] = form[name].value;
+      });
       try {
         await db.collection('responses').add(data);
         alert('제출 성공! 결과 페이지로 이동합니다.');
         form.reset();
         location.href = 'results.html';
-      } catch (err) {
-        console.error('저장 실패:', err);
+      } catch(err) {
+        console.error(err);
         alert('전송 실패, 다시 시도해주세요.');
       }
     });
