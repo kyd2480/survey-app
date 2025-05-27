@@ -65,6 +65,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script>
     // Firebase 초기화
     const firebaseConfig = {
@@ -137,7 +138,7 @@
           const btnTd = document.createElement('td');
           const btn = document.createElement('button');
           btn.textContent = '다운로드';
-          btn.addEventListener('click', () => downloadExcel([r]));
+          btn.addEventListener('click', () => triggerDownload([r]));
           btnTd.appendChild(btn);
           tr.appendChild(btnTd);
 
@@ -152,7 +153,7 @@
 
         // 전체 다운로드
         document.getElementById('downloadAll').addEventListener('click', () => {
-          downloadExcel(allResponses);
+          triggerDownload(allResponses);
         });
 
         // 선택 다운로드
@@ -161,56 +162,118 @@
             .map(cb => cb.dataset.id);
           const sel = allResponses.filter(r => selIds.includes(r.id));
           if (!sel.length) return alert('하나 이상 선택해주세요.');
-          downloadExcel(sel);
+          triggerDownload(sel);
         });
       })
       .catch(console.error);
 
     // 2) 엑셀 다운로드 함수 (.xls HTML 방식)
-    function downloadExcel(responses) {
+    // 트리거: 단일 vs ZIP 분기
+    async function triggerDownload(list) {
+      if (list.length === 1) {
+        const { blob, filename } = makeExcelFile(list[0]);
+        downloadFile(blob, filename);
+      } else {
+        const zip = new JSZip();
+        list.forEach(r => {
+          const { blob, filename } = makeExcelFile(r);
+          zip.file(filename, blob);
+        });
+        const content = await zip.generateAsync({ type: 'blob' });
+        downloadFile(content, 'responses.zip');
+      }
+    }
+
+    // HTML → Blob + 파일명 생성
+    function makeExcelFile(r) {
       const metaH = ['부서', '이름', '평가자'];
       const surveyH = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
+      const opts = ['네', '보통', '아니오', '해당사항없습니다'];
 
-      // 각 응답마다 테이블 블록 생성
-      const blocks = responses.map(r => {
-        const metaRow = `
-          <tr>${metaH.map(h => `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`).join('')}</tr>
-          <tr>${[r.part, r.name, r.manager].map(v => `<td style="border:1px solid #000;padding:5px">${v || ''}</td>`).join('')}</tr>
-          <tr><td colspan="${surveyH.length}" style="border:none"></td></tr>
-        `;
-        const headerRow = `
-          <tr>${surveyH.map(h => `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`).join('')}</tr>
-        `;
-        const dataRows = questions.map((q, i) => {
-          const ans = r['q' + (i + 1)] || '';
-          const opts = ['네', '보통', '아니오', '해당사항없습니다'];
-          const cells = opts.map(label =>
-            `<td style="text-align:center;border:1px solid #000;padding:5px">${label === ans ? '●' : '○'}</td>`
+      // 1) 메타 영역
+      const metaRow = `
+      <tr>${metaH.map(h =>
+        `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
+      ).join('')}</tr>
+      <tr>${[r.part, r.name, r.manager].map(v =>
+        `<td style="border:1px solid #000;padding:5px">${v || ''}</td>`
+      ).join('')}</tr>
+      <tr><td colspan="${surveyH.length}" style="border:none;height:10px"></td></tr>
+    `;
+
+      // 2) 설문 헤더
+      const headerRow = `
+      <tr>${surveyH.map(h =>
+        `<th style="font-weight:bold;border:1px solid #000;padding:5px">${h}</th>`
+      ).join('')}</tr>
+    `;
+
+      // 3) 질문 그룹화(rowspan)
+      const groups = [];
+      questions.forEach((q, i) => {
+        if (i === 0 || q.big !== questions[i - 1].big) {
+          groups.push({ big: q.big, items: [q] });
+        } else {
+          groups[groups.length - 1].items.push(q);
+        }
+      });
+
+      // 4) 그룹별 행 생성
+      const dataRows = groups.map(group => {
+        const len = group.items.length;
+        return group.items.map((q, idx) => {
+          const qi = questions.indexOf(q);
+          const ans = r['q' + (qi + 1)] || '';
+          // ○/● 생성
+          const circles = opts.map(label =>
+            `<td style="text-align:center;border:1px solid #000;padding:5px">` +
+            (label === ans ? '●' : '○') +
+            `</td>`
           ).join('');
-          return `
-            <tr>
-              <td style="border:1px solid #000;padding:5px">${q.big}</td>
-              <td style="border:1px solid #000;padding:5px">${q.mid}</td>
-              <td class="question-text" style="border:1px solid #000;padding:5px">${q.text}</td>
-              ${cells}
-            </tr>
-          `;
-        }).join('');
-        return metaRow + headerRow + dataRows;
-      }).join('<tr><td colspan="7" style="border:none;height:20px"></td></tr>');
+          // rowspan 처리
+          const bigCell = group.big
+            ? `<td rowspan="${len}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${group.big}</td>`
+            : `<td style="border:1px solid #000;padding:5px"></td>`;
+          // mid, text 셀
+          const midCell = `<td style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${q.mid}</td>`;
+          const textCell = `<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>`;
 
+          return `
+          <tr>
+            ${idx === 0 ? bigCell : ''}
+            ${midCell}
+            ${textCell}
+            ${circles}
+          </tr>
+        `;
+        }).join('');
+      }).join('');
+
+      // 전체 HTML
       const html = `
-        <html xmlns:x="urn:schemas-microsoft-com:office:excel">
-        <head><meta charset="utf-8"></head>
-        <body><table>${blocks}</table></body>
-        </html>
-      `.trim();
+      <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+      <head><meta charset="utf-8"></head>
+      <body>
+        <table border="1">
+          ${metaRow}
+          ${headerRow}
+          ${dataRows}
+        </table>
+      </body>
+      </html>
+    `.trim();
 
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const filename = `${r.part}_${r.name}.xls`;
+      return { blob, filename };
+    }
+
+    // Blob → 다운로드
+    function downloadFile(blob, filename) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `responses_${Date.now()}.xls`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     }
