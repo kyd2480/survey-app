@@ -2,26 +2,26 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>설문 페이지</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <h1>설문에 응답해주세요</h1>
   <form id="surveyForm">
     <label>파트: <input name="part" required></label><br>
     <label>이름: <input name="name" required></label><br>
-    <!-- 문항 q1 ~ q10 예시 -->
-    <div id="questions">
-      <label>1. 질문1: <input name="q1" required></label><br>
-      <label>2. 질문2: <input name="q2" required></label><br>
-      <label>3. 질문3: <input name="q2" required></label><br>
-      <label>4. 질문4: <input name="q2" required></label><br>
-      <label>5. 질문5: <input name="q2" required></label><br>
-      <label>6. 질문6: <input name="q2" required></label><br>
-      <label>7. 질문7: <input name="q2" required></label><br>
-      <label>8. 질문8: <input name="q2" required></label><br>
-      <label>9. 질문9: <input name="q2" required></label><br>
-      <label>10. 질문10: <input name="q10" required></label><br>
-    </div>
+    <!-- 질문 1~10 -->
+    <label>1. 근태(출근) 상태는 양호한가요? <input name="q1" required></label><br>
+    <label>2. 인사성이 좋은가요? <input name="q2" required></label><br>
+    <label>3. 모두를 존중하는 예의바른 태도를 가지고 있나요? <input name="q3" required></label><br>
+    <label>4. 관계성이 좋은 편인가요? <input name="q4" required></label><br>
+    <label>5. 타 부서 도움요청에 적극 협조하나요? <input name="q5" required></label><br>
+    <label>6. 산만하지 않고 집중력이 좋은 편인가요? <input name="q6" required></label><br>
+    <label>7. 밝고 긍정적인 분위기를 조성하나요? <input name="q7" required></label><br>
+    <label>8. 의견을 인정하고 대화·소통이 잘 되는 편인가요? <input name="q8" required></label><br>
+    <label>9. 솔선수범하며 적극적으로 근무하나요? <input name="q9" required></label><br>
+    <label>10. 지시를 정확히 이행하고 따르나요? <input name="q10" required></label><br>
     <button type="submit">제출</button>
   </form>
 
@@ -29,44 +29,47 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
-    // 1) Firebase 초기화 (복사해온 설정으로 교체하세요)
+    // ——————————————
+    // 1) Firebase 초기화
+    // 아래 YOUR_* 부분을 본인 Firebase 설정으로 교체하세요.
     const firebaseConfig = {
       apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
       authDomain: "survey-46c04.firebaseapp.com",
-      projectId: "survey-46c04",
+      projectId: "survey-46c04"
     };
     firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+    const db = firebase.firestore();
 
-// 2) 폼 제출 시 Firestore에 저장
-document.getElementById('surveyForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
+    // ——————————————
+    // 2) 폼 제출 시 Firestore에 저장
+    document.getElementById('surveyForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
 
-  // 기본 필드
-  const data = {
-    part: form.part.value,
-    name: form.name.value,
-    time: firebase.firestore.FieldValue.serverTimestamp()
-  };
+      // 기본 필드
+      const data = {
+        part: form.part.value,
+        name: form.name.value,
+        time: firebase.firestore.FieldValue.serverTimestamp()
+      };
 
-  // q로 시작하는 모든 입력(input, textarea, select) 요소 찾아서 수집
-  Array.from(form.elements)
-    .filter(el => el.name && el.name.startsWith('q'))
-    .forEach(el => {
-      data[el.name] = el.value;
+      // q1~q10 값 수집
+      Array.from(form.elements)
+        .filter(el => el.name && el.name.startsWith('q'))
+        .forEach(el => {
+          data[el.name] = el.value;
+        });
+
+      try {
+        await db.collection('responses').add(data);
+        alert('제출 성공! 결과 페이지로 이동합니다.');
+        form.reset();
+        location.href = 'results.html';
+      } catch (err) {
+        console.error('저장 실패:', err);
+        alert('전송 실패, 다시 시도해주세요.');
+      }
     });
-
-  try {
-    await db.collection('responses').add(data);
-    alert('제출되었습니다! 결과 페이지로 이동합니다.');
-    form.reset();
-    location.href = 'results.html';
-  } catch (err) {
-    console.error('Firestore 저장 실패:', err);
-    alert('전송에 실패했습니다. 다시 시도해주세요.');
-  }
-});
   </script>
 </body>
 </html>
