@@ -9,6 +9,7 @@
     table { border-collapse: collapse; width:100%; }
     th, td { border:1px solid #ddd; padding:8px; }
     th { background:#f4f4f4; }
+
   </style>
 </head>
 <body>
@@ -17,7 +18,8 @@
     <thead>
       <tr>
         <th>파트</th>
-        <th>이름</th>
+        <th>평가대상자</th>
+        <th>평가자</th>
         <th>다운로드</th>
       </tr>
     </thead>
@@ -77,7 +79,7 @@
           const tr = document.createElement('tr');
 
           // 파트, 이름 셀
-          ['part','name'].forEach(key => {
+          ['part','name','manager'].forEach(key => {
             const td = document.createElement('td');
             td.textContent = r[key] || '';
             tr.appendChild(td);
@@ -88,17 +90,29 @@
           const btn = document.createElement('button');
           btn.textContent = '다운로드';
           btn.addEventListener('click', () => {
+            const metaH = ['부서','이름','평가자'];
+            const metaV = [r.part, r.name, r.manager || '']
+            .map(c => `"${(c+'').replace(/"/g,'""')}"`);
+
             // CSV 헤더: 대분류,중분류,질문,응답
-            const header = ['대분류','중분류','질문','응답'];
-            // 각 question + 답변 row 생성
-            const rows = questions.map((q,i) => {
-              const answer = r['q'+(i+1)] || '';
-              return [q.big, q.mid, q.text, answer]
-                .map(cell => `"${cell.replace(/"/g,'""')}"`).join(',');
+            const qH = ['대분류','중분류','질문','응답'];
+            const qRows = questions.map((q,i) => {
+            const ans = r['q'+(i+1)] || '';
+            return [q.big, q.mid, q.text, ans]
+            .map(c => `"${(c+'').replace(/"/g,'""')}"`).join(','); 
             });
+
+
             // UTF-8 BOM
             const bom = '\uFEFF';
-            const csv = bom + header.join(',') + '\r\n' + rows.join('\r\n');
+            const csv = [
+            bom + metaH.join(','),              // "부서,이름,평가자"
+            metaV.join(','),                    // 값 행
+            qH.join(','),                       // "대분류,중분류,질문,응답"
+            ...qRows                            // 각 문항별 행
+            ].join('\r\n');
+
+
             // 다운로드
             const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
             const url = URL.createObjectURL(blob);
