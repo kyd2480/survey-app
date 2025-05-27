@@ -169,31 +169,20 @@
       .catch(console.error);
 
     // 2) 엑셀 다운로드 함수 (.xls HTML 방식)
-
-    // 2) SheetJS 기반 .xlsx 워크북 생성 & 다운로드  
-    function triggerDownload(responses) {
-      const wb = XLSX.utils.book_new();
-      responses.forEach(r => {
-        // 메타 + 빈줄 + 헤더 + 데이터 배열 구성  
-        const meta = [
-          ['부서', r.part],
-          ['평가자', r.manager || ''],
-          ['평가대상자', r.name],
-          []
-        ];
-        const header = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
-        const body = questions.map((q, i) => {
-          const ans = r['q' + (i + 1)] || '';
-          return [
-            q.big || '', q.mid || '', q.text,
-            ...['네', '보통', '아니오', '해당사항없습니다'].map(opt => opt === ans ? '●' : '○')
-          ];
+    // 트리거: 단일 vs ZIP 분기
+    async function triggerDownload(list) {
+      if (list.length === 1) {
+        const { blob, filename } = makeExcelFile(list[0]);
+        downloadFile(blob, filename);
+      } else {
+        const zip = new JSZip();
+        list.forEach(r => {
+          const { blob, filename } = makeExcelFile(r);
+          zip.file(filename, blob);
         });
-        const sheet = XLSX.utils.aoa_to_sheet([...meta, header, ...body]);
-        const name = `${r.part}_${r.manager}`.slice(0, 31);
-        XLSX.utils.book_append_sheet(wb, sheet, name);
-      });
-      XLSX.writeFile(wb, 'responses.xlsx');
+        const content = await zip.generateAsync({ type: 'blob' });
+        downloadFile(content, 'responses.zip');
+      }
     }
 
     // HTML → Blob + 파일명 생성
