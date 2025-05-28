@@ -175,7 +175,7 @@
 
       for (const r of responses) {
         // 1) 새 시트
-        const name = `${r.part}_${r.manager}`.substring(0, 31);
+        const name = `${r.part}_${r.manager}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(name);
 
         sheet.getCell('A1').value = '부서';
@@ -336,7 +336,7 @@
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       const filename = responses.length === 1
-        ? `${responses[0].part}_${responses[0].name}.xlsx`
+        ? `${responses[0].part}_${responses[0].manager}.xlsx`
         : `responses_${Date.now()}.xlsx`;
 
       const url = URL.createObjectURL(blob);
