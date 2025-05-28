@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"
-  xmlns="http://www.w3.org/TR/REC-html40" lang="ko">
+<html lang="ko">
 
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <title>응답 리스트</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>설문 응답 리스트</title>
   <link rel="stylesheet" href="css/styles.css" />
   <style>
     body {
@@ -17,8 +17,8 @@
     }
 
     button {
-      margin-right: .5rem;
-      padding: .5rem 1rem;
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
       font-size: 1rem;
     }
 
@@ -43,19 +43,12 @@
       text-align: left;
     }
   </style>
-  <!--[if gte mso 9]><xml>
-  <x:ExcelWorkbook>
-    <x:ExcelWorksheets>
-      <!-- sheets go here -->
-  </x:ExcelWorksheets>
-  </x:ExcelWorkbook>
-  </xml>
-  <![endif]-->
 </head>
+
 <body>
   <h1>설문 응답 목록</h1>
-  <button id="downloadAll">전체 다운로드</button>
-  <button id="downloadSel">선택 다운로드</button>
+  <button id="downloadAll">전체 다운로드 (.xlsx)</button>
+  <button id="downloadSel">선택 다운로드 (.xlsx)</button>
 
   <table id="respTable">
     <thead>
@@ -63,27 +56,29 @@
         <th><input type="checkbox" id="chkAll"></th>
         <th>파트</th>
         <th>평가자</th>
-        <th>평가대상자</th>
+        <th>대상자</th>
         <th>다운로드</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
+  <!-- Firebase & ExcelJS -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 
   <script>
-    // Firebase init
-    firebase.initializeApp({
+    // 1) Firebase 초기화
+    const firebaseConfig = {
       apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
       authDomain: "survey-46c04.firebaseapp.com",
       projectId: "survey-46c04"
-    });
+    };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 질문, 옵션 정의
+    // 2) 질문 배열 및 rowspan 계산
     const questions = [{ big: "인성 및 기본역량", mid: "기본인성", text: "근태(출근) 상태는 양호한가요?" },
     { big: "", mid: "", text: "인사성이 좋은가요? 비속어나 욕설을 사용하지 않고 바른말을 잘 사용하는 편인가요?" },
     { big: "", mid: "", text: "비속어나 욕설을 사용하지않고 바른말을 잘 사용하는 편인가요?" },
@@ -112,11 +107,6 @@
     { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
     { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }
     ];
-    const metaH = ['부서', '평가자', '평가대상자'];
-    const surveyH = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
-    const opts = ['네', '보통', '아니오', '해당사항없습니다'];
-
-    // rowspan 계산
     const filledBig = [], filledMid = [];
     questions.forEach((q, i) => {
       filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
@@ -132,62 +122,137 @@
         : 0;
     });
 
-    // 렌더링
+    // 3) 응답 목록 렌더링
     const tbody = document.querySelector('#respTable tbody');
-    let allRes = [];
-    db.collection('responses').orderBy('time').get().then(snap => {
-      snap.forEach(doc => {
-        const r = { id: doc.id, ...doc.data() }; allRes.push(r);
+    let allResponses = [];
+    db.collection('responses').orderBy('time').get().then(snapshot => {
+      snapshot.forEach(doc => {
+        const r = { id: doc.id, ...doc.data() };
+        allResponses.push(r);
         const tr = document.createElement('tr');
-        // checkbox
-        const tdC = document.createElement('td'); const cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.classList.add('rowChk'); cb.dataset.id = doc.id;
-        tdC.appendChild(cb); tr.appendChild(tdC);
-        ['part', 'manager', 'name'].forEach(k => { const td = document.createElement('td'); td.textContent = r[k] || ''; tr.appendChild(td); });
-        const tdB = document.createElement('td'); const btn = document.createElement('button');
-        btn.textContent = '다운로드'; btn.onclick = () => downloadSheets([r]); tdB.appendChild(btn); tr.appendChild(tdB);
+
+        // 체크박스
+        const tdChk = document.createElement('td');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox'; chk.classList.add('rowChk'); chk.dataset.id = doc.id;
+        tdChk.appendChild(chk); tr.appendChild(tdChk);
+
+        // part / manager / name
+        ['part', 'manager', 'name'].forEach(k => {
+          const td = document.createElement('td');
+          td.textContent = r[k] || '';
+          tr.appendChild(td);
+        });
+
+        // 개별다운로드 버튼
+        const tdBtn = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = '다운로드';
+        btn.addEventListener('click', () => triggerDownload([r]));
+        tdBtn.appendChild(btn); tr.appendChild(tdBtn);
+
         tbody.appendChild(tr);
       });
-      document.getElementById('chkAll').onchange = e => document.querySelectorAll('.rowChk').forEach(c => c.checked = e.target.checked);
-      document.getElementById('downloadAll').onclick = () => downloadSheets(allRes);
-      document.getElementById('downloadSel').onclick = () => {
-        const selIds = Array.from(document.querySelectorAll('.rowChk:checked')).map(c => c.dataset.id);
-        const sel = allRes.filter(r => selIds.includes(r.id)); if (!sel.length) return alert('선택해주세요');
-        downloadSheets(sel);
-      };
-    });
 
-    // 멀티시트 HTML 생성 및 다운로드
-    function downloadSheets(responses) {
-      const entries = responses.map(r => ({ r, name: `${r.part}_${r.name}`.substring(0, 31).replace(/[\\/:*?"<>|]/g, '') }));
-      // 워크시트 목록 xml
-      const xmlSheets = entries.map(e => `      <x:ExcelWorksheet>\n        <x:Name>${e.name}</x:Name>\n        <x:WorksheetOptions/>\n      </x:ExcelWorksheet>`).join('\n');
-      // 테이블들
-      const tables = entries.map(e => {
-        // 메타 rows
-        const metaRows = metaH.map((h, i) =>
-          `<tr><th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>` +
-          `<td colspan="${surveyH.length - 1}" style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${[e.r.part, e.r.manager, e.r.name][i] || ''}</td></tr>`
-        ).join('');
-        const headerRow = `<tr>${surveyH.map(h => `<th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>`).join('')}</tr>`;
-        const dataRows = questions.map((q, i) => {
-          const ans = e.r['q' + (i + 1)] || '';
-          const circles = opts.map(o => `<td style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${o === ans ? '●' : '○'}</td>`).join('');
-          const bigCell = bigSpans[i] ? `<td rowspan="${bigSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledBig[i]}</td>` : '';
-          const midCell = midSpans[i] ? `<td rowspan="${midSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledMid[i]}</td>` : '';
-          return `<tr>${bigCell}${midCell}<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>${circles}</tr>`;
-        }).join('');
-        return `<table x:Name="${e.name}" border="1">\n${metaRows}\n${headerRow}\n${dataRows}\n</table>`;
-      }).join('');
+      document.getElementById('chkAll').addEventListener('change', e => {
+        document.querySelectorAll('.rowChk').forEach(cb => cb.checked = e.target.checked);
+      });
+      document.getElementById('downloadAll').addEventListener('click', () => triggerDownload(allResponses));
+      document.getElementById('downloadSel').addEventListener('click', () => {
+        const selIds = Array.from(document.querySelectorAll('.rowChk:checked')).map(cb => cb.dataset.id);
+        const sel = allResponses.filter(r => selIds.includes(r.id));
+        if (!sel.length) return alert('하나 이상 선택해주세요.');
+        triggerDownload(sel);
+      });
+    }).catch(console.error);
 
-      const html = `<!DOCTYPE html>\n<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">\n<head>\n<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>\n<!--[if gte mso 9]>
-  <xml>\n<x:ExcelWorkbook>\n<x:ExcelWorksheets>\n${xmlSheets}\n</x:ExcelWorksheets>\n</x:ExcelWorkbook>\n</xml><![endif]-->\n</head>\n<body>\n${tables}\n</body>\n</html>`;
+    // 4) ExcelJS 기반 다운로드 (멀티시트)
+    async function triggerDownload(responses) {
+      const workbook = new ExcelJS.Workbook();
 
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const fileName = responses.length > 1 ? `responses_${Date.now()}.xls` : `${responses[0].part}_${responses[0].name}.xls`;
-      const a = document.createElement('a'); const url = URL.createObjectURL(blob);
-      a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url);
+      for (const r of responses) {
+        // 시트명 (31자 제한)
+        const sheetName = `${r.part}_${r.name}`.substring(0, 31);
+        const sheet = workbook.addWorksheet(sheetName);
+
+        // 메타 정보
+        [['부서', r.part], ['평가자', r.manager], ['대상자', r.name]].forEach(vals => {
+          const row = sheet.addRow(vals);
+          row.eachCell(cell => {
+            cell.font = { bold: true };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin' }, left: { style: 'thin' },
+              bottom: { style: 'thin' }, right: { style: 'thin' }
+            };
+          });
+          // 메타 값을 2~7열에 걸쳐 병합
+          sheet.mergeCells(row.number, 2, row.number, 7);
+        });
+        sheet.addRow([]); // 빈줄
+
+        // 헤더
+        const header = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
+        const hdr = sheet.addRow(header);
+        hdr.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+
+        // 본문 + rowspan 병합
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const ans = r['q' + (i + 1)] || '';
+          const row = sheet.addRow([
+            filledBig[i] || '', filledMid[i] || '', q.text,
+            ans === '네' ? '●' : '○',
+            ans === '보통' ? '●' : '○',
+            ans === '아니오' ? '●' : '○',
+            ans === '해당사항없습니다' ? '●' : '○'
+          ]);
+          row.eachCell((cell, col) => {
+            cell.alignment = { horizontal: col === 3 ? 'left' : 'center', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin' }, left: { style: 'thin' },
+              bottom: { style: 'thin' }, right: { style: 'thin' }
+            };
+          });
+          if (bigSpans[i] > 1) {
+            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
+          }
+          if (midSpans[i] > 1) {
+            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
+          }
+        }
+
+        // 컬럼 너비 자동 조정
+        sheet.columns.forEach(col => {
+          let mx = 10;
+          col.eachCell(c => {
+            mx = Math.max(mx, (c.value || '').toString().length + 2);
+          });
+          col.width = mx;
+        });
+      }
+
+      // .xlsx 로 생성하여 단일파일 다운로드
+      const buf = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const filename = responses.length === 1
+        ? `${responses[0].part}_${responses[0].name}.xlsx`
+        : `responses_${Date.now()}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
+
 </html>
