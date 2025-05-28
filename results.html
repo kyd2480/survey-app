@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>응답 리스트</title>
+  <title>설문 응답 리스트</title>
   <link rel="stylesheet" href="css/styles.css" />
   <style>
     body {
@@ -49,6 +49,7 @@
   <h1>설문 응답 목록</h1>
   <button id="downloadAll">전체 다운로드</button>
   <button id="downloadSel">선택 다운로드</button>
+
   <table id="respTable">
     <thead>
       <tr>
@@ -65,17 +66,11 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <!-- Excel HTML (.xls) 생성용 -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <!-- Excel HTML (.xls) - 다중 시트 지원용 -->
 
   <script>
     // Firebase 초기화
-    const firebaseConfig = {
-      apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ",
-      authDomain: "survey-46c04.firebaseapp.com",
-      projectId: "survey-46c04"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyDSrSDzGSuzVw1mfeCUfXvmq7mT0SP0UBQ", authDomain: "survey-46c04.firebaseapp.com", projectId: "survey-46c04" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -107,92 +102,123 @@
       { big: "*테크닉", mid: "문화 운영능력", text: "새로고침 *문화 운영과 개선은 원할히 하는편인가요? -인사/조회/근태관리/환경정리/존중,존칭 및 존댓말/연장근무/휴게시간등" },
       { big: "", mid: "★매니지먼트", text: "직원들 *매니지먼트 역할은 잘하는 편인가요? -면담을 통한 설명/이해/설득/회유/개선/조치/해소/고충처리등 '직원과의 면담능력'" },
       { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
-      { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" },];
+      { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }
+    ];
+    const metaH = ['부서', '평가자', '평가대상자'];
+    const surveyH = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
+    const opts = ['네', '보통', '아니오', '해당사항없습니다'];
+
+    // rowspan 병합 계산
+    const filledBig = [], filledMid = [];
+    questions.forEach((q, i) => {
+      filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
+      filledMid[i] = q.mid || (i > 0 ? filledMid[i - 1] : '');
+    });
+    const bigSpans = [], midSpans = [];
+    questions.forEach((_, i) => {
+      bigSpans[i] = (i === 0 || filledBig[i] !== filledBig[i - 1])
+        ? (() => { const cnt = filledBig.slice(i).findIndex(x => x !== filledBig[i]); return cnt < 0 ? questions.length - i : cnt; })()
+        : 0;
+      midSpans[i] = (i === 0 || filledMid[i] !== filledMid[i - 1])
+        ? (() => { const cnt = filledMid.slice(i).findIndex(x => x !== filledMid[i]); return cnt < 0 ? questions.length - i : cnt; })()
+        : 0;
+    });
 
     // 테이블 렌더링
     const tbody = document.querySelector('#respTable tbody');
     let allResponses = [];
     db.collection('responses').orderBy('time').get().then(snapshot => {
       snapshot.forEach(doc => {
-        const r = { id: doc.id, ...doc.data() };
-        allResponses.push(r);
-
+        const r = { id: doc.id, ...doc.data() }; allResponses.push(r);
         const tr = document.createElement('tr');
         // 체크박스
-        const chkTd = document.createElement('td');
-        const chk = document.createElement('input');
+        const tdChk = document.createElement('td'); const chk = document.createElement('input');
         chk.type = 'checkbox'; chk.classList.add('rowChk'); chk.dataset.id = doc.id;
-        chkTd.appendChild(chk); tr.appendChild(chkTd);
+        tdChk.appendChild(chk); tr.appendChild(tdChk);
         // 파트, 평가자, 대상자
-        ['part', 'manager', 'name'].forEach(key => {
-          const td = document.createElement('td'); td.textContent = r[key] || ''; tr.appendChild(td);
-        });
+        ['part', 'manager', 'name'].forEach(key => { const td = document.createElement('td'); td.textContent = r[key] || ''; tr.appendChild(td); });
         // 다운로드 버튼
-        const btnTd = document.createElement('td');
-        const btn = document.createElement('button'); btn.textContent = '다운로드';
-        btn.addEventListener('click', () => triggerDownload([r]));
-        btnTd.appendChild(btn); tr.appendChild(btnTd);
+        const tdBtn = document.createElement('td'); const btn = document.createElement('button');
+        btn.textContent = '다운로드'; btn.addEventListener('click', () => triggerDownload([r]));
+        tdBtn.appendChild(btn); tr.appendChild(tdBtn);
         tbody.appendChild(tr);
       });
-      // 전체 선택 토글
       document.getElementById('chkAll').addEventListener('change', e => {
         document.querySelectorAll('.rowChk').forEach(cb => cb.checked = e.target.checked);
       });
       document.getElementById('downloadAll').addEventListener('click', () => triggerDownload(allResponses));
       document.getElementById('downloadSel').addEventListener('click', () => {
         const selIds = Array.from(document.querySelectorAll('.rowChk:checked')).map(cb => cb.dataset.id);
-        const sel = allResponses.filter(r => selIds.includes(r.id));
-        if (!sel.length) return alert('하나 이상 선택해주세요.');
+        const sel = allResponses.filter(r => selIds.includes(r.id)); if (!sel.length) return alert('하나 이상 선택해주세요.');
         triggerDownload(sel);
       });
     }).catch(console.error);
 
-    // 엑셀 HTML 방식 다운로드
+    // 다중 시트 HTML 워크북 생성
+    function makeWorkbookHTML(responses) {
+      const entries = responses.map(r => {
+        const name = `${r.part}_${r.manager}`.substring(0, 31).replace(/[\\\\/:*?"<>|]/g, '');
+        return { r, name };
+      });
+      const xmlSheets = entries.map(e => `
+        <x:ExcelWorksheet>
+          <x:Name>${e.name}</x:Name>
+          <x:WorksheetOptions/>
+        </x:ExcelWorksheet>
+      `).join('');
+      const tables = entries.map(e => {
+        const metaRows = metaH.map((h, idx) =>
+          `<tr><th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>` +
+          `<td colspan="${surveyH.length - 1}" style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${[e.r.part, e.r.manager, e.r.name][idx] || ''}</td></tr>`
+        ).join('');
+        const headerRow = `<tr>${surveyH.map(h => `<th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>`).join('')}</tr>`;
+        const dataRows = questions.map((q, i) => {
+          const ans = e.r['q' + (i + 1)] || '';
+          const circles = opts.map(o => `<td style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${o === ans ? '●' : '○'}</td>`).join('');
+          const bigCell = bigSpans[i] ? `<td rowspan="${bigSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledBig[i]}</td>` : '';
+          const midCell = midSpans[i] ? `<td rowspan="${midSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledMid[i]}</td>` : '';
+          return `<tr>${bigCell}${midCell}<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>${circles}</tr>`;
+        }).join('');
+        return `<table x:Name="${e.name}" border="1">
+          ${metaRows}
+          ${headerRow}
+          ${dataRows}
+        </table>`;
+      }).join('');
+      return `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="utf-8"/>
+<!--[if gte mso 9]><xml>
+ <x:ExcelWorkbook>
+   <x:ExcelWorksheets>${xmlSheets}
+   </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml><![endif]-->
+</head>
+<body>
+${tables}
+</body>
+</html>`;
+    }
+
+    // 다운로드 핸들러
     async function triggerDownload(responses) {
-      if (responses.length === 1) {
-        const { blob, filename } = makeExcelFile(responses[0]);
-        downloadFile(blob, filename);
-      } else {
-        const zip = new JSZip();
-        responses.forEach(r => {
-          const { blob, filename } = makeExcelFile(r);
-          zip.file(filename, blob);
-        });
-        const content = await zip.generateAsync({ type: 'blob' });
-        downloadFile(content, 'responses.zip');
+      if (responses.length === 1) { const { blob, filename } = makeExcelFile(responses[0]); download(blob, filename); }
+      else {
+        const html = makeWorkbookHTML(responses);
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        download(blob, `responses_${Date.now()}.xls`);
       }
     }
 
+    // 기존 단일 시트 HTML -> Blob
     function makeExcelFile(r) {
-      const metaH = ['부서', '평가자', '평가대상자'];
-      const surveyH = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
-      const opts = ['네', '보통', '아니오', '해당사항없습니다'];
-
-      // 빈칸 상속
-      const filledBig = [], filledMid = [];
-      questions.forEach((q, i) => {
-        filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
-        filledMid[i] = q.mid || (i > 0 ? filledMid[i - 1] : '');
-      });
-      // rowspan 계산
-      const bigSpans = [], midSpans = [];
-      questions.forEach((_, i) => {
-        bigSpans[i] = (i === 0 || filledBig[i] !== filledBig[i - 1])
-          ? ((filledBig.slice(i).findIndex(x => x !== filledBig[i]) < 0 ? questions.length - i : filledBig.slice(i).findIndex(x => x !== filledBig[i])))
-          : 0;
-        midSpans[i] = (i === 0 || filledMid[i] !== filledMid[i - 1])
-          ? ((filledMid.slice(i).findIndex(x => x !== filledMid[i]) < 0 ? questions.length - i : filledMid.slice(i).findIndex(x => x !== filledMid[i])))
-          : 0;
-      });
-
-      // 메타 + 질문을 하나의 테이블에 연속해서 생성
       const metaRows = metaH.map((h, idx) =>
         `<tr><th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>` +
         `<td colspan="${surveyH.length - 1}" style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${[r.part, r.manager, r.name][idx] || ''}</td></tr>`
       ).join('');
-
       const headerRow = `<tr>${surveyH.map(h => `<th style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle;font-weight:bold">${h}</th>`).join('')}</tr>`;
-
       const dataRows = questions.map((q, i) => {
         const ans = r['q' + (i + 1)] || '';
         const circles = opts.map(o => `<td style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${o === ans ? '●' : '○'}</td>`).join('');
@@ -200,29 +226,18 @@
         const midCell = midSpans[i] ? `<td rowspan="${midSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledMid[i]}</td>` : '';
         return `<tr>${bigCell}${midCell}<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>${circles}</tr>`;
       }).join('');
-
-      const html = `
-<html xmlns:x="urn:schemas-microsoft-com:office:excel">
+      const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
 <head><meta charset="utf-8"></head>
-<body>
-  <table border="1">
-    ${metaRows}
-    ${headerRow}
-    ${dataRows}
-  </table>
-</body>
+<body><table border="1">
+${metaRows}
+${headerRow}
+${dataRows}
+</table></body>
 </html>`;
-
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const filename = `${r.part}_${r.manager}.xls`;
-      return { blob, filename };
+      return { blob: new Blob([html], { type: 'application/vnd.ms-excel' }), filename: `${r.part}_${r.manager}.xls` };
     }
 
-    function downloadFile(blob, filename) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    }
+    function download(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
   </script>
 </body>
 
