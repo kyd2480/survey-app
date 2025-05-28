@@ -188,6 +188,9 @@
         });
         // 값 행
         const metaValueRow = sheet.addRow([r.part, r.name, r.manager]);
+        // 평가자 칸(3~7열) 병합
+        sheet.mergeCells(metaValueRow.number, 3, metaValueRow.number, 7);
+
         metaValueRow.eachCell(cell => {
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
@@ -198,7 +201,7 @@
         // 빈 줄 없이 바로 헤더
 
         // 헤더
-        const header = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
+        const header = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
         const hdr = sheet.addRow(header);
         hdr.eachCell(cell => {
           cell.font = { bold: true };
