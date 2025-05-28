@@ -209,16 +209,13 @@
         //
         // 3) 헤더 (4행)
         //
-        const hdrLabels = [
-          '대분류', '중분류', '질문',
-          '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'
-        ];
+        const headerRow = sheet.getRow(4);
         hdrLabels.forEach((h, idx) => {
-          const c = sheet.getCell(4, idx + 1);
-          c.value = h;
-          c.font = { bold: true };
-          c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = {
+          const cell = headerRow.getCell(idx + 1);
+          cell.value = h;
+          cell.font = { bold: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
             bottom: { style: 'thin' },
@@ -230,7 +227,7 @@
         // 4) 질문별 대분류·중분류 그룹 계산
         //
         // 질문은 4행부터 시작
-        const startRow = 4;
+        const startRow = 5;
         // big 그룹: q.big이 있던 인덱스들
         const bigIdxs = [];
         questions.forEach((q, i) => { if (q.big) bigIdxs.push(i); });
