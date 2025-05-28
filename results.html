@@ -110,7 +110,6 @@
       { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
       { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }
     ];
-
     const metaH = ['부서', '평가자', '평가대상자'];
     const surveyH = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
     const opts = ['네', '보통', '아니오', '해당사항없습니다'];
@@ -159,7 +158,7 @@
 
     // 다중 시트 HTML 워크북 생성 함수
     function makeWorkbookHTML(responses) {
-      const entries = responses.map(r => ({ r, name: `${r.part}_${r.manager}`.substring(0, 31).replace(/[\\/:*?"<>|]/g, '') }));
+      const entries = responses.map(r => ({ r, name: `${r.part}_${r.name}`.substring(0, 31).replace(/[\/:*?"<>|]/g, '') })););
       const xmlSheets = entries.map(e => `
       <x:ExcelWorksheet>
         <x:Name>${e.name}</x:Name>
