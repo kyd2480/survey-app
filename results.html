@@ -171,12 +171,12 @@
 
       for (const r of responses) {
         // 1) 새 시트
-        const name = `${r.part}_${r.name}`.substring(0, 31);
+        const name = `${r.part}_${r.manager}`.substring(0, 31);
         const sheet = workbook.addWorksheet(name);
 
         sheet.getCell('A1').value = '부서';
-        sheet.getCell('B1').value = '이름';
-        sheet.getCell('C1').value = '평가자';
+        sheet.getCell('B1').value = '평가자';
+        sheet.getCell('C1').value = '평가대상자';
         ['A1', 'B1', 'C1'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
@@ -191,8 +191,8 @@
 
         // 2행: 값
         sheet.getCell('A2').value = r.part;
-        sheet.getCell('B2').value = r.name;
-        sheet.getCell('C2').value = r.manager;
+        sheet.getCell('B2').value = r.manager;
+        sheet.getCell('C2').value = r.name;
         ['A2', 'B2', 'C2'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -205,7 +205,7 @@
         });
 
         // 3행: 빈 줄
-        sheet.addRow([]);
+        sheet.insertRow(3, []);
         //
         // 3) 헤더 (4행)
         //
@@ -214,7 +214,7 @@
           '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'
         ];
         hdrLabels.forEach((h, idx) => {
-          const c = sheet.getCell(3, idx + 1);
+          const c = sheet.getCell(4, idx + 1);
           c.value = h;
           c.font = { bold: true };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
