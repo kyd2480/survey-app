@@ -175,21 +175,27 @@
         const sheetName = `${r.part}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(sheetName);
 
-        // 메타 정보
-        [['부서', r.part], ['평가자', r.manager], ['대상자', r.name]].forEach(vals => {
-          const row = sheet.addRow(vals);
-          row.eachCell(cell => {
-            cell.font = { bold: true };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            cell.border = {
-              top: { style: 'thin' }, left: { style: 'thin' },
-              bottom: { style: 'thin' }, right: { style: 'thin' }
-            };
-          });
-          // 메타 값을 2~7열에 걸쳐 병합
-          sheet.mergeCells(row.number, 2, row.number, 7);
+        // 메타 정보 (가로 방향)
+        // 라벨 행
+        const metaLabelRow = sheet.addRow(['부서', '이름', '평가자']);
+        metaLabelRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
-        sheet.addRow([]); // 빈줄
+        // 값 행
+        const metaValueRow = sheet.addRow([r.part, r.name, r.manager]);
+        metaValueRow.eachCell(cell => {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+        // 빈 줄 없이 바로 헤더
 
         // 헤더
         const header = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
