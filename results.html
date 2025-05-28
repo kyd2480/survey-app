@@ -170,23 +170,23 @@
       const workbook = new ExcelJS.Workbook();
 
       for (const r of responses) {
-        // 1) 시트 생성
+        // 시트 생성 (이름 31자 제한)
         const sheetName = `${r.part}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(sheetName);
 
         //
-        // 2) 메타 정보 (1~2행)
+        // 1) 메타 정보: 1행과 2행
         //
 
-        // 1행: 부서 / 파트, 평가자 / 평가자 값
+        // 1행: A1='부서', B1=파트, F1='평가자', G1=평가자
         sheet.getCell('A1').value = '부서';
         sheet.getCell('B1').value = r.part;
         sheet.getCell('F1').value = '평가자';
         sheet.getCell('G1').value = r.manager;
-        // 병합
+        // 병합: B1~E1, F1~G1
         sheet.mergeCells('B1:E1');
         sheet.mergeCells('F1:G1');
-        // 스타일
+        // 스타일 적용
         ['A1', 'B1', 'F1', 'G1'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
@@ -199,9 +199,10 @@
           };
         });
 
-        // 2행: 평가대상자 / 이름
+        // 2행: A2='평가대상자', B2=이름
         sheet.getCell('A2').value = '평가대상자';
         sheet.getCell('B2').value = r.name;
+        // 병합: B2~G2
         sheet.mergeCells('B2:G2');
         ['A2', 'B2'].forEach(addr => {
           const c = sheet.getCell(addr);
@@ -216,7 +217,7 @@
         });
 
         //
-        // 3) 헤더 행 (3행)
+        // 2) 헤더: 3행
         //
         const header = [
           '대분류', '중분류', '질문',
@@ -235,7 +236,7 @@
         });
 
         //
-        // 4) 본문: 질문별 row + rowspan 병합
+        // 3) 본문: 질문+●/○ + rowspan 병합
         //
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
@@ -249,8 +250,6 @@
             ans === '아니오' ? '●' : '○',
             ans === '해당사항없습니다' ? '●' : '○'
           ]);
-
-          // 스타일
           row.eachCell((cell, col) => {
             cell.alignment = {
               horizontal: col === 3 ? 'left' : 'center',
@@ -263,7 +262,6 @@
               right: { style: 'thin' }
             };
           });
-
           // 대분류 rowspan
           if (bigSpans[i] > 1) {
             sheet.mergeCells(
@@ -281,7 +279,7 @@
         }
 
         //
-        // 5) 자동 컬럼 너비 조정
+        // 4) 자동 너비 조정
         //
         sheet.columns.forEach(col => {
           let max = 10;
@@ -293,7 +291,7 @@
       }
 
       //
-      // 6) 워크북 생성 및 다운로드
+      // 5) 파일 생성 & 다운로드
       //
       const buf = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buf], {
@@ -310,7 +308,6 @@
       a.click();
       URL.revokeObjectURL(url);
     }
-
 
   </script>
 </body>
