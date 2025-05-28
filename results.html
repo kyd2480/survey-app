@@ -170,23 +170,20 @@
       const workbook = new ExcelJS.Workbook();
 
       for (const r of responses) {
-        // 1) 워크시트 생성 (이름 31자 제한)
-        const sheetName = `${r.part}_${r.name}`.substring(0, 31);
-        const sheet = workbook.addWorksheet(sheetName);
+        // 1) 새 시트
+        const name = `${r.part}_${r.name}`.substring(0, 31);
+        const sheet = workbook.addWorksheet(name);
 
         //
         // 2) 메타 정보 (1~2행)
         //
-
-        // 1행: A1='부서', B1=파트 값, F1='평가자', G1=평가자 값
+        // 1행
         sheet.getCell('A1').value = '부서';
         sheet.getCell('B1').value = r.part;
         sheet.getCell('F1').value = '평가자';
         sheet.getCell('G1').value = r.manager;
-        // 병합: B1~E1, F1~G1
         sheet.mergeCells('B1:E1');
         sheet.mergeCells('F1:G1');
-        // 스타일
         ['A1', 'B1', 'F1', 'G1'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
@@ -199,10 +196,9 @@
           };
         });
 
-        // 2행: A2='평가대상자', B2=대상자 값
+        // 2행
         sheet.getCell('A2').value = '평가대상자';
         sheet.getCell('B2').value = r.name;
-        // 병합: B2~G2
         sheet.mergeCells('B2:G2');
         ['A2', 'B2'].forEach(addr => {
           const c = sheet.getCell(addr);
@@ -223,42 +219,46 @@
           '대분류', '중분류', '질문',
           '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'
         ];
-        for (let i = 0; i < hdrLabels.length; i++) {
-          const cell = sheet.getCell(3, i + 1);
-          cell.value = hdrLabels[i];
-          cell.font = { bold: true };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
+        hdrLabels.forEach((h, idx) => {
+          const c = sheet.getCell(3, idx + 1);
+          c.value = h;
+          c.font = { bold: true };
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
             bottom: { style: 'thin' },
             right: { style: 'thin' }
           };
-        }
+        });
 
         //
-        // 4) 본문 (4행~) + rowspan 병합
+        // 4) 질문별 대분류·중분류 그룹 계산
+        //
+        // 질문은 4행부터 시작
+        const startRow = 4;
+        // big 그룹: q.big이 있던 인덱스들
+        const bigIdxs = [];
+        questions.forEach((q, i) => { if (q.big) bigIdxs.push(i); });
+        // mid 그룹: q.mid이 있던 인덱스들
+        const midIdxs = [];
+        questions.forEach((q, i) => { if (q.mid) midIdxs.push(i); });
+
+        //
+        // 5) 본문 채우기 (4행~)
         //
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
           const ans = r['q' + (i + 1)] || '';
-
-          // 블록의 맨 처음 행 only
-          const bigVal = bigSpans[i] > 0 ? filledBig[i] : '';
-          const midVal = midSpans[i] > 0 ? filledMid[i] : '';
-
+          // 템플릿 배열: [bigVal, midVal, question, ○●…]
           const row = sheet.addRow([
-            bigVal,
-            midVal,
-            q.text,
+            '', '', q.text,
             ans === '네' ? '●' : '○',
             ans === '보통' ? '●' : '○',
             ans === '아니오' ? '●' : '○',
             ans === '해당사항없습니다' ? '●' : '○'
           ]);
-
-
-          // 셀 스타일
+          // 스타일
           row.eachCell((cell, col) => {
             cell.alignment = {
               horizontal: col === 3 ? 'left' : 'center',
@@ -271,20 +271,49 @@
               right: { style: 'thin' }
             };
           });
-
-          // 첫 행에서만 병합 + 가운데 정렬
-          if (bigSpans[i] > 1) {
-            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
-            sheet.getCell(row.number, 1).alignment = { horizontal: 'center', vertical: 'middle' };
-          }
-          if (midSpans[i] > 1) {
-            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
-            sheet.getCell(row.number, 2).alignment = { horizontal: 'center', vertical: 'middle' };
-          }
         }
 
         //
-        // 5) 컬럼 자동 너비 조정
+        // 6) 실제 값+병합 적용
+        //
+        // 6.1) 대분류
+        bigIdxs.forEach((startIdx, gi) => {
+          // 끝 인덱스 = 다음 시작 전, 또는 질문 수
+          const endIdx = (gi + 1 < bigIdxs.length ? bigIdxs[gi + 1] : questions.length);
+          const from = startRow + startIdx;
+          const to = startRow + endIdx - 1;
+          sheet.mergeCells(from, 1, to, 1);
+          const c = sheet.getCell(from, 1);
+          c.value = questions[startIdx].big;
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.font = { bold: true };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+        // 6.2) 중분류
+        midIdxs.forEach((startIdx, mi) => {
+          const endIdx = (mi + 1 < midIdxs.length ? midIdxs[mi + 1] : questions.length);
+          const from = startRow + startIdx;
+          const to = startRow + endIdx - 1;
+          sheet.mergeCells(from, 2, to, 2);
+          const c = sheet.getCell(from, 2);
+          c.value = questions[startIdx].mid;
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.font = { bold: true };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+
+        //
+        // 7) 컬럼 너비 자동 조정
         //
         sheet.columns.forEach(col => {
           let max = 10;
@@ -296,7 +325,7 @@
       }
 
       //
-      // 6) 워크북 내보내기
+      // 8) 다운로드
       //
       const buf = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buf], {
@@ -308,9 +337,7 @@
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
+      a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
     }
 
