@@ -167,6 +167,10 @@
 
     // 4) ExcelJS 기반 다운로드 (멀티시트)
     async function triggerDownload(responses) {
+      const hdrLabels = [
+        '대분류', '중분류', '질문',
+        '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'
+      ];
       const workbook = new ExcelJS.Workbook();
 
       for (const r of responses) {
