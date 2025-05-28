@@ -231,6 +231,23 @@
             ...['네', '보통', '아니오', '해당사항없습니다']
               .map(opt => opt === ans ? '●' : '○')
           ]);
+          // big cell / mid cell: filled 텍스트로, rowspan 적용
+          const bigCell = bigSpans[i]
+            ? `<td rowspan="${bigSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledBig[i]}</td>`
+            : '';
+          const midCell = midSpans[i]
+            ? `<td rowspan="${midSpans[i]}" style="border:1px solid #000;padding:5px;text-align:center;vertical-align:middle">${filledMid[i]}</td>`
+            : '';
+          const textCell = `<td style="border:1px solid #000;padding:5px;text-align:left;vertical-align:middle">${q.text}</td>`;
+
+          return `
+        <tr>
+          ${bigCell}
+          ${midCell}
+          ${textCell}
+          ${circles}
+        </tr>
+      `;
           // 스타일
           row.eachCell((cell, col) => {
             cell.alignment = { horizontal: (col === 3 ? 'left' : 'center'), vertical: 'middle' };
@@ -239,13 +256,6 @@
               bottom: { style: 'thin' }, right: { style: 'thin' }
             };
           });
-          // rowspan 병합
-          if (bigSpans[i] > 1) {
-            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
-          }
-          if (midSpans[i] > 1) {
-            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
-          }
         }
       }
 
