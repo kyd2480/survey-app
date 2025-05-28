@@ -174,44 +174,40 @@
         const name = `${r.part}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(name);
 
-        //
-        // 2) 메타 정보 (1~2행)
-        //
-        // 1행
         sheet.getCell('A1').value = '부서';
-        sheet.getCell('B1').value = r.part;
-        sheet.mergeCells('B1:G1');      // B1부터 G1까지 병합
-        ['A1', 'B1'].forEach(addr => {
+        sheet.getCell('B1').value = '이름';
+        sheet.getCell('C1').value = '평가자';
+        ['A1', 'B1', 'C1'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
         });
 
-        // 2행: 평가자 … 김영덕
-        sheet.getCell('A2').value = '평가자';
-        sheet.getCell('B2').value = r.manager;
-        sheet.mergeCells('B2:G2');
-        ['A2', 'B2'].forEach(addr => {
+        // 2행: 값
+        sheet.getCell('A2').value = r.part;
+        sheet.getCell('B2').value = r.name;
+        sheet.getCell('C2').value = r.manager;
+        ['A2', 'B2', 'C2'].forEach(addr => {
           const c = sheet.getCell(addr);
-          c.font = { bold: true };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
         });
 
-        // 3행: 평가대상자 … 장민우
-        sheet.getCell('A3').value = '평가대상자';
-        sheet.getCell('B3').value = r.name;
-        sheet.mergeCells('B3:G3');
-        ['A3', 'B3'].forEach(addr => {
-          const c = sheet.getCell(addr);
-          c.font = { bold: true };
-          c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-        });
-
+        // 3행: 빈 줄
+        sheet.addRow([]);
         //
-        // 3) 헤더 (3행)
+        // 3) 헤더 (4행)
         //
         const hdrLabels = [
           '대분류', '중분류', '질문',
