@@ -180,36 +180,34 @@
         // 1행
         sheet.getCell('A1').value = '부서';
         sheet.getCell('B1').value = r.part;
-        sheet.getCell('F1').value = '평가자';
-        sheet.getCell('G1').value = r.manager;
-        sheet.mergeCells('B1:E1');
-        sheet.mergeCells('F1:G1');
-        ['A1', 'B1', 'F1', 'G1'].forEach(addr => {
+        sheet.mergeCells('B1:G1');      // B1부터 G1까지 병합
+        ['A1', 'B1'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
+          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
 
-        // 2행
-        sheet.getCell('A2').value = '평가대상자';
-        sheet.getCell('B2').value = r.name;
+        // 2행: 평가자 … 김영덕
+        sheet.getCell('A2').value = '평가자';
+        sheet.getCell('B2').value = r.manager;
         sheet.mergeCells('B2:G2');
         ['A2', 'B2'].forEach(addr => {
           const c = sheet.getCell(addr);
           c.font = { bold: true };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
+          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+
+        // 3행: 평가대상자 … 장민우
+        sheet.getCell('A3').value = '평가대상자';
+        sheet.getCell('B3').value = r.name;
+        sheet.mergeCells('B3:G3');
+        ['A3', 'B3'].forEach(addr => {
+          const c = sheet.getCell(addr);
+          c.font = { bold: true };
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
 
         //
