@@ -242,15 +242,21 @@
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
           const ans = r['q' + (i + 1)] || '';
+
+          // 블록의 맨 처음 행 only
+          const bigVal = bigSpans[i] > 0 ? filledBig[i] : '';
+          const midVal = midSpans[i] > 0 ? filledMid[i] : '';
+
           const row = sheet.addRow([
-            filledBig[i] || '',
-            filledMid[i] || '',
+            bigVal,
+            midVal,
             q.text,
             ans === '네' ? '●' : '○',
             ans === '보통' ? '●' : '○',
             ans === '아니오' ? '●' : '○',
             ans === '해당사항없습니다' ? '●' : '○'
           ]);
+
 
           // 셀 스타일
           row.eachCell((cell, col) => {
@@ -266,19 +272,14 @@
             };
           });
 
-          // 대분류 rowspan
+          // 첫 행에서만 병합 + 가운데 정렬
           if (bigSpans[i] > 1) {
-            sheet.mergeCells(
-              row.number, 1,
-              row.number + bigSpans[i] - 1, 1
-            );
+            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
+            sheet.getCell(row.number, 1).alignment = { horizontal: 'center', vertical: 'middle' };
           }
-          // 중분류 rowspan
           if (midSpans[i] > 1) {
-            sheet.mergeCells(
-              row.number, 2,
-              row.number + midSpans[i] - 1, 2
-            );
+            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
+            sheet.getCell(row.number, 2).alignment = { horizontal: 'center', vertical: 'middle' };
           }
         }
 
