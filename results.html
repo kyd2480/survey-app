@@ -65,8 +65,6 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
     // Firebase 초기화
@@ -178,17 +176,23 @@
         const name = `${r.part}_${r.manager}`.substring(0, 31);
         const sheet = workbook.addWorksheet(name);
 
-        // 1) Meta rows
-        sheet.addRow(['부서', r.part]);
-        sheet.addRow(['평가자', r.manager || '']);
-        sheet.addRow(['평가대상자', r.name]);
-        //sheet.addRow([]); // spacer
+        // ── 1) 메타 행 (굵게, 테두리, 가운데 정렬) ──
+        [['부서', r.part], ['평가자', r.manager || ''], ['평가대상자', r.name]]
+          .forEach((rowValues, idx) => {
+            const row = sheet.addRow(rowValues);
+            row.eachCell((cell) => {
+              cell.font = { bold: true };
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.border = {
+                top: { style: 'thin' }, left: { style: 'thin' },
+                bottom: { style: 'thin' }, right: { style: 'thin' }
+              };
+            });
+          });
 
-        // 2) Header row
+        // ── 2) 헤더 행 ──
         const header = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
         const headerRow = sheet.addRow(header);
-
-        // Style header
         headerRow.eachCell(cell => {
           cell.font = { bold: true };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -198,14 +202,14 @@
           };
         });
 
-        // 3) Data rows with grouping+merges
-        // First fill big/mid arrays
+        // ── 3) 본문: 질문+○● + 병합(rowspan) ──
+        // 3.1) big/mid 채우기
         const filledBig = [], filledMid = [];
         questions.forEach((q, i) => {
-          filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
-          filledMid[i] = q.mid || (i > 0 ? filledMid[i - 1] : '');
+          filledBig[i] = q.big || filledBig[i - 1] || '';
+          filledMid[i] = q.mid || filledMid[i - 1] || '';
         });
-        // Calculate spans
+        // 3.2) spans 계산
         const bigSpans = [], midSpans = [];
         questions.forEach((_, i) => {
           if (i === 0 || filledBig[i] !== filledBig[i - 1]) {
@@ -218,54 +222,39 @@
           } else midSpans[i] = 0;
         });
 
-        // Add each question row
+        // 3.3) 질문별 행 추가
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
           const ans = r['q' + (i + 1)] || '';
           const row = sheet.addRow([
-            filledBig[i],
-            filledMid[i],
-            q.text,
-            ...(['네', '보통', '아니오', '해당사항없습니다']
-              .map(opt => opt === ans ? '●' : '○'))
+            filledBig[i], filledMid[i], q.text,
+            ...['네', '보통', '아니오', '해당사항없습니다']
+              .map(opt => opt === ans ? '●' : '○')
           ]);
-          // Style all cells in this row
-          row.eachCell((cell, colNum) => {
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          // 스타일
+          row.eachCell((cell, col) => {
+            cell.alignment = { horizontal: (col === 3 ? 'left' : 'center'), vertical: 'middle' };
             cell.border = {
               top: { style: 'thin' }, left: { style: 'thin' },
               bottom: { style: 'thin' }, right: { style: 'thin' }
             };
-            if (colNum === 3) { // question text
-              cell.alignment = { horizontal: 'left', vertical: 'middle' };
-            }
           });
-          // Apply merges on big/mid columns
+          // rowspan 병합
           if (bigSpans[i] > 1) {
-            sheet.mergeCells(
-              row.number,    // start row
-              1,             // start col
-              row.number + bigSpans[i] - 1,
-              1
-            );
+            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
           }
           if (midSpans[i] > 1) {
-            sheet.mergeCells(
-              row.number,
-              2,
-              row.number + midSpans[i] - 1,
-              2
-            );
+            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
           }
-          // Clear duplicate text in merged cells
-          if (bigSpans[i] > 1) sheet.getCell(row.number + 1, 1).value = null;
-          if (midSpans[i] > 1) sheet.getCell(row.number + 1, 2).value = null;
         }
       }
 
-      // 4) Export
+      // ── 4) 파일 생성/다운로드 ──
       const buf = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = new Blob([buf], {
+        type:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
