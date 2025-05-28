@@ -170,35 +170,73 @@
       const workbook = new ExcelJS.Workbook();
 
       for (const r of responses) {
+        // 1) 시트 생성
         const sheetName = `${r.part}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(sheetName);
 
-        // --- 메타 정보: 2행 구성 ---
-        // 1행: 부서, 값, 평가자, 값 (4 columns)
-        const metaRow1 = sheet.addRow(['부서', r.part, '평가자', r.manager]);
-        metaRow1.eachCell(cell => {
-          cell.font = { bold: true };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        // 2행: 평가대상자, 값 (2 columns)
-        const metaRow2 = sheet.addRow(['평가대상자', r.name]);
-        metaRow2.eachCell(cell => {
-          cell.font = { bold: true };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        //
+        // 2) 메타 정보 (1~2행)
+        //
+
+        // 1행: 부서 / 파트, 평가자 / 평가자 값
+        sheet.getCell('A1').value = '부서';
+        sheet.getCell('B1').value = r.part;
+        sheet.getCell('F1').value = '평가자';
+        sheet.getCell('G1').value = r.manager;
+        // 병합
+        sheet.mergeCells('B1:E1');
+        sheet.mergeCells('F1:G1');
+        // 스타일
+        ['A1', 'B1', 'F1', 'G1'].forEach(addr => {
+          const c = sheet.getCell(addr);
+          c.font = { bold: true };
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
         });
 
-        // 바로 헤더 행
-        const header = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
+        // 2행: 평가대상자 / 이름
+        sheet.getCell('A2').value = '평가대상자';
+        sheet.getCell('B2').value = r.name;
+        sheet.mergeCells('B2:G2');
+        ['A2', 'B2'].forEach(addr => {
+          const c = sheet.getCell(addr);
+          c.font = { bold: true };
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+
+        //
+        // 3) 헤더 행 (3행)
+        //
+        const header = [
+          '대분류', '중분류', '질문',
+          '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'
+        ];
         const hdr = sheet.addRow(header);
         hdr.eachCell(cell => {
           cell.font = { bold: true };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
         });
 
-        // 본문 + rowspan 병합
+        //
+        // 4) 본문: 질문별 row + rowspan 병합
+        //
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
           const ans = r['q' + (i + 1)] || '';
@@ -211,33 +249,68 @@
             ans === '아니오' ? '●' : '○',
             ans === '해당사항없습니다' ? '●' : '○'
           ]);
+
+          // 스타일
           row.eachCell((cell, col) => {
-            cell.alignment = { horizontal: col === 3 ? 'left' : 'center', vertical: 'middle' };
-            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            cell.alignment = {
+              horizontal: col === 3 ? 'left' : 'center',
+              vertical: 'middle'
+            };
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
           });
-          if (bigSpans[i] > 1) sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
-          if (midSpans[i] > 1) sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
+
+          // 대분류 rowspan
+          if (bigSpans[i] > 1) {
+            sheet.mergeCells(
+              row.number, 1,
+              row.number + bigSpans[i] - 1, 1
+            );
+          }
+          // 중분류 rowspan
+          if (midSpans[i] > 1) {
+            sheet.mergeCells(
+              row.number, 2,
+              row.number + midSpans[i] - 1, 2
+            );
+          }
         }
 
-        // 컬럼 너비 자동 조정
+        //
+        // 5) 자동 컬럼 너비 조정
+        //
         sheet.columns.forEach(col => {
-          let mx = 10;
-          col.eachCell(c => mx = Math.max(mx, (c.value || '').toString().length + 2));
-          col.width = mx;
+          let max = 10;
+          col.eachCell(c => {
+            max = Math.max(max, (c.value || '').toString().length + 2);
+          });
+          col.width = max;
         });
       }
 
-      // 파일 생성 & 다운로드
+      //
+      // 6) 워크북 생성 및 다운로드
+      //
       const buf = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
       const filename = responses.length === 1
         ? `${responses[0].part}_${responses[0].name}.xlsx`
         : `responses_${Date.now()}.xlsx`;
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
+      a.href = url;
+      a.download = filename;
+      a.click();
       URL.revokeObjectURL(url);
     }
+
 
   </script>
 </body>
