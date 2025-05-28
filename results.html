@@ -282,7 +282,10 @@
       });
 
       // 3) 파일 다운로드
-      XLSX.writeFile(wb, 'responses.xlsx');
+      XLSX.writeFile(wb, 'responses.xlsx', {
+        bookType: 'xlsx',
+        cellStyles: true
+      });
     }
     // ────────────────────────────────────────────────────
   </script>
