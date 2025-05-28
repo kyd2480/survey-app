@@ -105,8 +105,7 @@
     { big: "*테크닉", mid: "문화 운영능력", text: "새로고침 *문화 운영과 개선은 원할히 하는편인가요? -인사/조회/근태관리/환경정리/존중,존칭 및 존댓말/연장근무/휴게시간등" },
     { big: "", mid: "★매니지먼트", text: "직원들 *매니지먼트 역할은 잘하는 편인가요? -면담을 통한 설명/이해/설득/회유/개선/조치/해소/고충처리등 '직원과의 면담능력'" },
     { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
-    { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }
-    ];
+    { big: "개선/성장 가능성", mid: "가능성", text: "부족한 점은 개선하고 성장할 가능성이 있나요?" }];
     const filledBig = [], filledMid = [];
     questions.forEach((q, i) => {
       filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
@@ -171,45 +170,32 @@
       const workbook = new ExcelJS.Workbook();
 
       for (const r of responses) {
-        // 시트명 (31자 제한)
         const sheetName = `${r.part}_${r.name}`.substring(0, 31);
         const sheet = workbook.addWorksheet(sheetName);
 
-        // 메타 정보 (가로 방향)
-        // 라벨 행
-        const metaLabelRow = sheet.addRow(['부서', '이름', '평가자']);
-        metaLabelRow.eachCell(cell => {
+        // --- 메타 정보: 2행 구성 ---
+        // 1행: 부서, 값, 평가자, 값 (4 columns)
+        const metaRow1 = sheet.addRow(['부서', r.part, '평가자', r.manager]);
+        metaRow1.eachCell(cell => {
           cell.font = { bold: true };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin' }, left: { style: 'thin' },
-            bottom: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
-        // 값 행
-        const metaValueRow = sheet.addRow([r.part, r.name, r.manager]);
-        // 평가자 칸(3~7열) 병합
-        sheet.mergeCells(metaValueRow.number, 3, metaValueRow.number, 7);
-
-        metaValueRow.eachCell(cell => {
+        // 2행: 평가대상자, 값 (2 columns)
+        const metaRow2 = sheet.addRow(['평가대상자', r.name]);
+        metaRow2.eachCell(cell => {
+          cell.font = { bold: true };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin' }, left: { style: 'thin' },
-            bottom: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
-        // 빈 줄 없이 바로 헤더
 
-        // 헤더
+        // 바로 헤더 행
         const header = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
         const hdr = sheet.addRow(header);
         hdr.eachCell(cell => {
           cell.font = { bold: true };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin' }, left: { style: 'thin' },
-            bottom: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
 
         // 본문 + rowspan 병합
@@ -217,7 +203,9 @@
           const q = questions[i];
           const ans = r['q' + (i + 1)] || '';
           const row = sheet.addRow([
-            filledBig[i] || '', filledMid[i] || '', q.text,
+            filledBig[i] || '',
+            filledMid[i] || '',
+            q.text,
             ans === '네' ? '●' : '○',
             ans === '보통' ? '●' : '○',
             ans === '아니오' ? '●' : '○',
@@ -225,34 +213,23 @@
           ]);
           row.eachCell((cell, col) => {
             cell.alignment = { horizontal: col === 3 ? 'left' : 'center', vertical: 'middle' };
-            cell.border = {
-              top: { style: 'thin' }, left: { style: 'thin' },
-              bottom: { style: 'thin' }, right: { style: 'thin' }
-            };
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
           });
-          if (bigSpans[i] > 1) {
-            sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
-          }
-          if (midSpans[i] > 1) {
-            sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
-          }
+          if (bigSpans[i] > 1) sheet.mergeCells(row.number, 1, row.number + bigSpans[i] - 1, 1);
+          if (midSpans[i] > 1) sheet.mergeCells(row.number, 2, row.number + midSpans[i] - 1, 2);
         }
 
         // 컬럼 너비 자동 조정
         sheet.columns.forEach(col => {
           let mx = 10;
-          col.eachCell(c => {
-            mx = Math.max(mx, (c.value || '').toString().length + 2);
-          });
+          col.eachCell(c => mx = Math.max(mx, (c.value || '').toString().length + 2));
           col.width = mx;
         });
       }
 
-      // .xlsx 로 생성하여 단일파일 다운로드
+      // 파일 생성 & 다운로드
       const buf = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buf], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const filename = responses.length === 1
         ? `${responses[0].part}_${responses[0].name}.xlsx`
         : `responses_${Date.now()}.xlsx`;
@@ -261,6 +238,7 @@
       a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
     }
+
   </script>
 </body>
 
