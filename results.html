@@ -67,6 +67,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
     // Firebase 초기화
     const firebaseConfig = {
@@ -170,124 +171,108 @@
 
     // 2) 엑셀 다운로드 함수 (.xls HTML 방식)
     // SheetJS 기반: 하나의 .xlsx 에 다중 시트(tab) 생성
-    function triggerDownload(responses) {
-      // 1) 워크북 생성
-      const wb = XLSX.utils.book_new();
+    async function triggerDownload(responses) {
+      const workbook = new ExcelJS.Workbook();
 
-      // 2) 응답별로 시트 추가
-      responses.forEach(r => {
-        // 메타(부서/평가자/대상자), 빈줄, 헤더, 본문(○/●) 배열로 준비
-        const meta = [
-          ['부서', r.part],
-          ['평가자', r.manager || ''],
-          ['평가대상자', r.name],
-          []
-        ];
-        const header = ['대분류', '중분류', '질문', '네 맞습니다.', '좀 부족합니다.', '아니오.', '해당사항없습니다'];
-        const body = questions.map((q, i) => {
-          const ans = r['q' + (i + 1)] || '';
-          return [
-            q.big || '', q.mid || '', q.text,
-            ...['네', '보통', '아니오', '해당사항없습니다']
-              .map(opt => opt === ans ? '●' : '○')
-          ];
+      for (const r of responses) {
+        const name = `${r.part}_${r.manager}`.substring(0, 31);
+        const sheet = workbook.addWorksheet(name);
+
+        // 1) Meta rows
+        sheet.addRow(['부서', r.part]);
+        sheet.addRow(['평가자', r.manager || '']);
+        sheet.addRow(['평가대상자', r.name]);
+        sheet.addRow([]); // spacer
+
+        // 2) Header row
+        const header = ['대분류', '중분류', '질문', '네', '보통', '아니오', '해당사항없습니다'];
+        const headerRow = sheet.addRow(header);
+
+        // Style header
+        headerRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
 
-        // 시트 데이터 합치기 & 변환
-        const sheetData = [...meta, header, ...body];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-        // ─── 1) 메타 & 설문 헤더: 굵게, 가운데 정렬, 테두리 ───
-        const headerStyle = {
-          font: { bold: true },
-          alignment: { horizontal: "center", vertical: "center" },
-          border: {
-            top: { style: "thin" }, left: { style: "thin" },
-            bottom: { style: "thin" }, right: { style: "thin" }
-          }
-        };
-        // 메타(0~2행, 2열까지)
-        for (let R = 0; R < 3; R++) {
-          for (let C = 0; C < 2; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            if (ws[addr]) ws[addr].s = headerStyle;
-          }
-        }
-        // 설문 헤더(meta.length 행 전체)
-        const hdrRow = meta.length;
-        for (let C = 0; C < header.length; C++) {
-          const addr = XLSX.utils.encode_cell({ r: hdrRow, c: C });
-          if (ws[addr]) ws[addr].s = headerStyle;
-        }
-
-        // ─── 2) 대·중분류 병합(rowspan) ───
-        // filledBig/filledMid + bigSpans/midSpans 계산은 동일하게…
+        // 3) Data rows with grouping+merges
+        // First fill big/mid arrays
         const filledBig = [], filledMid = [];
         questions.forEach((q, i) => {
-          filledBig[i] = q.big || filledBig[i - 1] || "";
-          filledMid[i] = q.mid || filledMid[i - 1] || "";
+          filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
+          filledMid[i] = q.mid || (i > 0 ? filledMid[i - 1] : '');
         });
+        // Calculate spans
         const bigSpans = [], midSpans = [];
         questions.forEach((_, i) => {
           if (i === 0 || filledBig[i] !== filledBig[i - 1]) {
             const cnt = filledBig.slice(i).findIndex(x => x !== filledBig[i]);
-            bigSpans[i] = cnt < 0 ? questions.length - i : cnt;
+            bigSpans[i] = (cnt < 0 ? questions.length - i : cnt);
           } else bigSpans[i] = 0;
           if (i === 0 || filledMid[i] !== filledMid[i - 1]) {
             const cnt = filledMid.slice(i).findIndex(x => x !== filledMid[i]);
-            midSpans[i] = cnt < 0 ? questions.length - i : cnt;
+            midSpans[i] = (cnt < 0 ? questions.length - i : cnt);
           } else midSpans[i] = 0;
         });
-        // merges 리스트 생성
-        ws['!merges'] = [];
-        const start = meta.length + 1; // 실제 데이터 시작 row index (0-based)
-        questions.forEach((q, i) => {
-          const row = start + i;
+
+        // Add each question row
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const ans = r['q' + (i + 1)] || '';
+          const row = sheet.addRow([
+            filledBig[i],
+            filledMid[i],
+            q.text,
+            ...(['네', '보통', '아니오', '해당사항없습니다']
+              .map(opt => opt === ans ? '●' : '○'))
+          ]);
+          // Style all cells in this row
+          row.eachCell((cell, colNum) => {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin' }, left: { style: 'thin' },
+              bottom: { style: 'thin' }, right: { style: 'thin' }
+            };
+            if (colNum === 3) { // question text
+              cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            }
+          });
+          // Apply merges on big/mid columns
           if (bigSpans[i] > 1) {
-            ws['!merges'].push({
-              s: { r: row, c: 0 },
-              e: { r: row + bigSpans[i] - 1, c: 0 }
-            });
+            sheet.mergeCells(
+              row.number,    // start row
+              1,             // start col
+              row.number + bigSpans[i] - 1,
+              1
+            );
           }
           if (midSpans[i] > 1) {
-            ws['!merges'].push({
-              s: { r: row, c: 1 },
-              e: { r: row + midSpans[i] - 1, c: 1 }
-            });
+            sheet.mergeCells(
+              row.number,
+              2,
+              row.number + midSpans[i] - 1,
+              2
+            );
           }
-        });
-
-        // ─── 3) 모든 셀에 기본 테두리 ───
-        const totalRows = sheetData.length;
-        const totalCols = header.length;
-        for (let R = 0; R < totalRows; R++) {
-          for (let C = 0; C < totalCols; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[addr];
-            if (cell) {
-              cell.s = cell.s || {};
-              cell.s.border = {
-                top: { style: "thin" }, left: { style: "thin" },
-                bottom: { style: "thin" }, right: { style: "thin" }
-              };
-              // 응답 ○/● 가운데 정렬
-              cell.s.alignment = { horizontal: "center", vertical: "center" };
-            }
-          }
+          // Clear duplicate text in merged cells
+          if (bigSpans[i] > 1) sheet.getCell(row.number + 1, 1).value = null;
+          if (midSpans[i] > 1) sheet.getCell(row.number + 1, 2).value = null;
         }
+      }
 
-        // 시트 이름: "부서_평가자" (최대 31자)
-        const name = `${r.part}_${r.manager}`.substring(0, 31);
-        XLSX.utils.book_append_sheet(wb, ws, name);
-      });
-
-      // 3) 파일 다운로드
-      XLSX.writeFile(wb, 'responses.xlsx', {
-        bookType: 'xlsx',
-        cellStyles: true
-      });
+      // 4) Export
+      const buf = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'responses.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
     }
-    // ────────────────────────────────────────────────────
   </script>
 </body>
 
