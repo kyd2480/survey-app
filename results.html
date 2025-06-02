@@ -334,7 +334,7 @@
         const commentRowIndex = lastQuestionRow + 2;
         const commentRow = sheet.getRow(commentRowIndex);
         // A열에 레이블
-        sheet.mergecells(commentRowIndex, 1, commentRow + 2).value = '개인 의견';
+        sheet.mergecells(commentRowIndex, 2).value = '개인 의견';
 
         // 4-3) B열~G열을 33~35행까지 세로·가로 병합
         sheet.mergeCells(commentRowIndex, 2, commentRowIndex + 2, 7);
