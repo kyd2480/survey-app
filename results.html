@@ -333,11 +333,15 @@
         // 4-2) 빈 줄 아래(=lastQuestionRow+2)에 개인 의견 레이블과 값 넣기
         const commentRowIndex = lastQuestionRow + 2;
         const commentRow = sheet.getRow(commentRowIndex);
-        commentRow.getCell(1).value = '개인 의견';
-        commentRow.getCell(2).value = r.comment || '';
+        // A열에 레이블
+        sheet.getCell(commentRowIndex, 1).value = '개인 의견';
+
+        // 4-3) B열~G열을 33~35행까지 세로·가로 병합
+        sheet.mergeCells(commentRowIndex, 2, commentRowIndex + 2, 7);
         // (필요하다면 셀 병합하거나 스타일링)
         // 예: B~G열을 모두 합쳐서 자유 서술형을 넓게 보여주고 싶다면:
-        sheet.mergeCells(commentRowIndex, 2, commentRowIndex, 7);
+        mergedCell.value = r.comment || '';
+        mergedCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
         // 스타일링 (개인 의견)
         ['A', 'B'].forEach((col, idx) => {
