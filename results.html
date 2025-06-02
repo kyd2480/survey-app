@@ -326,6 +326,48 @@
         sheet.getColumn(6).width = 15;
         sheet.getColumn(7).width = 15;
 
+        const lastQuestionRow = startRow + questions.length - 1;
+
+        // 4-1) 첫째, 마지막 질문 다음에 빈 줄 하나 추가
+        sheet.insertRow(lastQuestionRow + 1, []);
+        // 4-2) 빈 줄 아래(=lastQuestionRow+2)에 개인 의견 레이블과 값 넣기
+        const commentRowIndex = lastQuestionRow + 2;
+        const commentRow = sheet.getRow(commentRowIndex);
+        commentRow.getCell(1).value = '개인 의견';
+        commentRow.getCell(2).value = r.comment || '';
+        // (필요하다면 셀 병합하거나 스타일링)
+        // 예: B~G열을 모두 합쳐서 자유 서술형을 넓게 보여주고 싶다면:
+        sheet.mergeCells(commentRowIndex, 2, commentRowIndex, 7);
+
+        // 스타일링 (개인 의견)
+        ['A', 'B'].forEach((col, idx) => {
+          const cellAddress = col + commentRowIndex;
+          const c = sheet.getCell(cellAddress);
+          c.font = { bold: idx === 0 }; // 레이블은 볼드, 값은 볼드 해제
+          c.alignment = { horizontal: 'left', vertical: 'top' };
+          c.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+        // 만약 병합한 B~G 셀 전체에도 테두리를 주고 싶다면:
+        const mergedCell = sheet.getCell(`B${commentRowIndex}`);
+        mergedCell.alignment = { horizontal: 'left', vertical: 'top' };
+        // (추가 스타일링: 필요 시 mergedCell.border 도 설정해 주세요)
+
+        //
+        // 5) 컬럼 너비 자동 조정 + 필요 시 고정 폭 설정
+        //
+        sheet.columns.forEach((col, idx) => {
+          let max = 10;
+          col.eachCell(c => max = Math.max(max, (c.value || '').toString().length + 2));
+          col.width = max;
+        });
+        // 예: 자유 서술형 영역이 넉넉하게 보이도록 2열 너비를 늘리고 싶다면:
+        sheet.getColumn(2).width = 50;
+
       }
 
       //
