@@ -311,7 +311,7 @@
         // 7) 컬럼 너비 자동 조정
         //
         sheet.columns.forEach(col => {
-          let max = 20;
+          let max = 10;
           col.eachCell(c => {
             max = Math.max(max, (c.value || '').toString().length + 2);
           });
@@ -383,19 +383,6 @@
           bottom: { style: 'thin' },
           right: { style: 'thin' }
         };
-
-
-
-        //
-        // 5) 컬럼 너비 자동 조정 + 필요 시 고정 폭 설정
-        //
-        sheet.columns.forEach((col, idx) => {
-          let max = 10;
-          col.eachCell(c => max = Math.max(max, (c.value || '').toString().length + 2));
-          col.width = max;
-        });
-        // 예: 자유 서술형 영역이 넉넉하게 보이도록 2열 너비를 늘리고 싶다면:
-        //sheet.getColumn(2).width = 50;
 
       }
 
