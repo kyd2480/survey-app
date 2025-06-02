@@ -340,6 +340,7 @@
         sheet.mergeCells(commentRowIndex, 2, commentRowIndex + 2, 7);
         // (필요하다면 셀 병합하거나 스타일링)
         // 예: B~G열을 모두 합쳐서 자유 서술형을 넓게 보여주고 싶다면:
+        const mergedCell = sheet.getCell(commentRowIndex, 2);
         mergedCell.value = r.comment || '';
         mergedCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
@@ -356,10 +357,33 @@
             right: { style: 'thin' }
           };
         });
-        // 만약 병합한 B~G 셀 전체에도 테두리를 주고 싶다면:
-        const mergedCell = sheet.getCell(`B${commentRowIndex}`);
-        mergedCell.alignment = { horizontal: 'left', vertical: 'top' };
-        // (추가 스타일링: 필요 시 mergedCell.border 도 설정해 주세요)
+
+        // 4-5) 레이블(A33)과 병합 블록(B33~G35)에 테두리 스타일 적용
+        ['A', '2', '3', '4', '5', '6', '7', '8'].forEach(colOrNum => { /* 더 이상 사용 안 함 */ });
+        // → 실제로는 아래처럼 각각 지정합니다:
+
+        // A33 셀 스타일 (레이블)
+        const labelCell = sheet.getCell(commentRowIndex, 1);
+        labelCell.font = { bold: true };
+        labelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        labelCell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+
+        // 병합된 영역(B33~G35)에도 테두리를 주기
+        // 병합된 셀 블록의 “선택된 첫 번째 셀”에만 border 속성을 주어도
+        // 전체 병합 영역에 테두리가 적용됩니다.
+        mergedCell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+
+
 
         //
         // 5) 컬럼 너비 자동 조정 + 필요 시 고정 폭 설정
