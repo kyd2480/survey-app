@@ -183,7 +183,10 @@
         sheet.getCell('C1').value = '평가대상자';
         ['A1', 'B1', 'C1'].forEach(addr => {
           const c = sheet.getCell(addr);
-          c.font = { bold: true };
+          c.font = {
+            bold: true,
+            size: 10
+          };
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.border = {
             top: { style: 'thin' },
@@ -238,7 +241,7 @@
           cell.value = h;
           cell.font = {
             bold: true,
-            size: 10
+            size: 8
           };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
@@ -278,7 +281,7 @@
           // 스타일
           row.eachCell((cell, col) => {
             cell.font = {
-              size: 10
+              size: 8
             }
             if (col == 3) {
               cell.alignment = {
@@ -316,7 +319,7 @@
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.font = {
             bold: true,
-            size: 10
+            size: 8
           };
           c.border = {
             top: { style: 'thin' },
@@ -336,7 +339,7 @@
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.font = {
             bold: true,
-            size: 10
+            size: 8
           };
           c.border = {
             top: { style: 'thin' },
@@ -357,13 +360,13 @@
           col.width = max;
         });
 
-        sheet.getColumn(1).width = 15;
-        sheet.getColumn(2).width = 10;
-        sheet.getColumn(3).width = 50;
-        sheet.getColumn(4).width = 8;
-        sheet.getColumn(5).width = 8;
-        sheet.getColumn(6).width = 8;
-        sheet.getColumn(7).width = 8;
+        sheet.getColumn(1).width = 14;
+        sheet.getColumn(2).width = 9;
+        sheet.getColumn(3).width = 45;
+        sheet.getColumn(4).width = 7;
+        sheet.getColumn(5).width = 7;
+        sheet.getColumn(6).width = 7;
+        sheet.getColumn(7).width = 7;
 
         const lastQuestionRow = startRow + questions.length - 1;
 
@@ -402,7 +405,7 @@
           const c = sheet.getCell(cellAddress);
           c.font = {
             bold: idx === 0,
-            size: 10
+            size: 8
           }; // 레이블은 볼드, 값은 볼드 해제
           c.alignment = { horizontal: 'left', vertical: 'top' };
           c.border = {
