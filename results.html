@@ -255,6 +255,9 @@
           ]);
           // 스타일
           row.eachCell((cell, col) => {
+            cell.font = {
+              size: 10
+            }
             if (col == 3) {
               cell.alignment = {
                 horizontal: 'left',
