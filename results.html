@@ -408,7 +408,10 @@
         sheet.getColumn(6).width = 5;
         sheet.getColumn(7).width = 5;
 
-        sheet.getRow(5).height = 30;
+        for (let i = 0; i < questions.length; i++) {
+          sheet.getRow(i).height = 20;
+        }
+
 
         const lastQuestionRow = startRow + questions.length - 1;
 
