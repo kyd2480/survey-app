@@ -229,6 +229,32 @@
             right: { style: 'thin' }
           };
         });
+        // 1행: D1~G1 병합 후 '날짜' 라벨
+        sheet.mergeCells('D1:G1');
+        const dateLabelCell = sheet.getCell('D1');
+        dateLabelCell.value = '날짜';
+        dateLabelCell.font = { name: '맑은 고딕', size: 10, bold: true };
+        dateLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        dateLabelCell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+
+        // 2행: D2~G2 병합 후 현재 제출 시간 기록
+        sheet.mergeCells('D2:G2');
+        const dateValueCell = sheet.getCell('D2');
+        // 서버 타임스탬프 대신 JS Date를 사용하려면 new Date().toLocaleString() 등
+        dateValueCell.value = new Date().toLocaleString('ko-KR', { hour12: false });
+        dateValueCell.font = { name: '맑은 고딕', size: 10 };
+        dateValueCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        dateValueCell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
 
         // 3행: 빈 줄
         sheet.insertRow(3, []);
@@ -251,6 +277,8 @@
             right: { style: 'thin' }
           };
         });
+
+
 
         //
         // 4) 질문별 대분류·중분류 그룹 계산
