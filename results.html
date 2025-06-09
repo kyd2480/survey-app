@@ -199,6 +199,25 @@
         sheet.getCell('C2').value = r.name;
         ['A2', 'B2', 'C2'].forEach(addr => {
           const c = sheet.getCell(addr);
+          if (addr === 'C2') {
+            // C2셀만 12pt, 볼드, 노랑 배경, 보라 글자
+            c.font = {
+              size: 12,
+              bold: true,
+              color: { argb: 'FF800080' }  // 보라색
+            };
+            c.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFF00' } // 노란색 배경
+            };
+          } else {
+            // 나머지는 10pt 기본 폰트
+            c.font = {
+              size: 10
+            };
+            // 기본 배경(없음)이므로 fill 생략
+          }
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.border = {
             top: { style: 'thin' },
@@ -217,7 +236,10 @@
         hdrLabels.forEach((h, idx) => {
           const cell = headerRow.getCell(idx + 1);
           cell.value = h;
-          cell.font = { bold: true };
+          cell.font = {
+            bold: true,
+            size: 10
+          };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
             top: { style: 'thin' },
@@ -292,7 +314,10 @@
           const c = sheet.getCell(from, 1);
           c.value = questions[startIdx].big;
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.font = { bold: true };
+          c.font = {
+            bold: true,
+            size: 10
+          };
           c.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
@@ -309,7 +334,10 @@
           const c = sheet.getCell(from, 2);
           c.value = questions[startIdx].mid;
           c.alignment = { horizontal: 'center', vertical: 'middle' };
-          c.font = { bold: true };
+          c.font = {
+            bold: true,
+            size: 10
+          };
           c.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
@@ -372,7 +400,10 @@
         ['A', 'B'].forEach((col, idx) => {
           const cellAddress = col + commentRowIndex;
           const c = sheet.getCell(cellAddress);
-          c.font = { bold: idx === 0 }; // 레이블은 볼드, 값은 볼드 해제
+          c.font = {
+            bold: idx === 0,
+            size: 10
+          }; // 레이블은 볼드, 값은 볼드 해제
           c.alignment = { horizontal: 'left', vertical: 'top' };
           c.border = {
             top: { style: 'thin' },
