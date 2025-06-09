@@ -255,10 +255,18 @@
           ]);
           // 스타일
           row.eachCell((cell, col) => {
-            cell.alignment = {
-              horizontal: col === 3 ? 'left' : 'center',
-              vertical: 'middle'
-            };
+            if (col == 3) {
+              cell.alignment = {
+                horizontal: 'left',
+                vertical: 'top',
+                wrapText: true
+              };
+            } else {
+              cell.alignment = {
+                horizontal: col === 3 ? 'left' : 'center',
+                vertical: 'middle'
+              };
+            }
             cell.border = {
               top: { style: 'thin' },
               left: { style: 'thin' },
@@ -320,11 +328,11 @@
 
         sheet.getColumn(1).width = 20;
         sheet.getColumn(2).width = 15;
-        sheet.getColumn(3).width = 110;
-        sheet.getColumn(4).width = 15;
-        sheet.getColumn(5).width = 15;
-        sheet.getColumn(6).width = 15;
-        sheet.getColumn(7).width = 15;
+        sheet.getColumn(3).width = 80;
+        sheet.getColumn(4).width = 10;
+        sheet.getColumn(5).width = 10;
+        sheet.getColumn(6).width = 10;
+        sheet.getColumn(7).width = 10;
 
         const lastQuestionRow = startRow + questions.length - 1;
 
