@@ -242,11 +242,22 @@
           right: { style: 'thin' }
         };
 
-        // 2행: D2~G2 병합 후 현재 제출 시간 기록
+        // 2행: D2~G2 병합 후 '제출일' 레이블과 저장된 제출 시각 출력
         sheet.mergeCells('D2:G2');
         const dateValueCell = sheet.getCell('D2');
-        // 서버 타임스탬프 대신 JS Date를 사용하려면 new Date().toLocaleString() 등
-        dateValueCell.value = new Date().toLocaleString('ko-KR', { hour12: false });
+
+        // Firestore Timestamp → JS Date 변환
+        // r.time이 Timestamp 객체라 가정합니다.
+        const ts = r.time ? r.time.toDate() : new Date();
+
+        // 연·월·일을 2자리로 포맷
+        const year = ts.getFullYear();
+        const month = String(ts.getMonth() + 1).padStart(2, '0');
+        const day = String(ts.getDate()).padStart(2, '0');
+
+        // 원하는 형식으로 셀 값 설정
+        dateValueCell.value = `${year}년 ${month}월 ${day}일`;
+
         dateValueCell.font = { name: '맑은 고딕', size: 10 };
         dateValueCell.alignment = { horizontal: 'center', vertical: 'middle' };
         dateValueCell.border = {
