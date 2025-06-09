@@ -241,7 +241,7 @@
           cell.value = h;
           cell.font = {
             bold: true,
-            size: 8
+            size: 7
           };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
@@ -281,7 +281,7 @@
           // 스타일
           row.eachCell((cell, col) => {
             cell.font = {
-              size: 8
+              size: 7
             }
             if (col == 3) {
               cell.alignment = {
@@ -319,7 +319,7 @@
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.font = {
             bold: true,
-            size: 8
+            size: 7
           };
           c.border = {
             top: { style: 'thin' },
@@ -339,7 +339,7 @@
           c.alignment = { horizontal: 'center', vertical: 'middle' };
           c.font = {
             bold: true,
-            size: 8
+            size: 7
           };
           c.border = {
             top: { style: 'thin' },
@@ -405,7 +405,7 @@
           const c = sheet.getCell(cellAddress);
           c.font = {
             bold: idx === 0,
-            size: 8
+            size: 7
           }; // 레이블은 볼드, 값은 볼드 해제
           c.alignment = { horizontal: 'left', vertical: 'top' };
           c.border = {
