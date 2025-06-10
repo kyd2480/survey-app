@@ -54,7 +54,7 @@
     <thead>
       <tr>
         <th><input type="checkbox" id="chkAll"></th>
-        <th>번호</th>
+
         <th>파트</th>
         <th>평가자</th>
         <th>대상자</th>
@@ -138,9 +138,6 @@
         chk.type = 'checkbox'; chk.classList.add('rowChk'); chk.dataset.id = doc.id;
         tdChk.appendChild(chk); tr.appendChild(tdChk);
 
-        const noTd = document.createElement('td');
-        noTd.textContent = (idx + 1);
-        tr.appendChild(noTd);
 
         // part / manager / name
         ['part', 'manager', 'name'].forEach(k => {
