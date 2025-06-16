@@ -592,29 +592,18 @@
       })
       .catch(console.error);
     // 4) 필터 버튼 핸들러
-    document.getElementById('btnFilter').addEventListener('click', () => {
-      const s = document.getElementById('startDate').value;
-      const e = document.getElementById('endDate').value;
-      if (!s || !e) {
-        return alert('시작일과 종료일을 모두 선택하세요.');
-      }
-      const start = new Date(s);
-      const end = new Date(e);
-      // 종료일의 23:59:59 까지 포함
-      end.setHours(23, 59, 59, 999);
-
-      const filtered = allResponses.filter(r => {
-        if (!r.time) return false;
-        const d = r.time.toDate();
-        return d >= start && d <= end;
-      });
-      renderTable(filtered);
-    });
+    document.getElementById('btnFilter').addEventListener('click', applyFilters);
 
     // 5) 필터 해제 버튼
     document.getElementById('btnClearFilter').addEventListener('click', () => {
+      // 날짜 초기화
       document.getElementById('startDate').value = '';
       document.getElementById('endDate').value = '';
+      // 파트·평가자·대상자 초기화
+      document.getElementById('filterPart').value = '';
+      document.getElementById('filterManager').value = '';
+      document.getElementById('filterName').value = '';
+      // 전체 렌더
       renderTable(allResponses);
     });
 
