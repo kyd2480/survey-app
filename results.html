@@ -47,8 +47,17 @@
 
 <body>
   <h1>설문 응답 목록</h1>
+  <div style="margin-bottom:1rem;">
+    <label>시작일: <input type="date" id="startDate"></label>
+    <label style="margin-left:1rem;">종료일: <input type="date" id="endDate"></label>
+    <button id="btnFilter" style="margin-left:1rem;">조회</button>
+    <button id="btnClearFilter" style="margin-left:0.5rem;">필터 해제</button>
+  </div>
+
   <button id="downloadAll">전체 다운로드 (.xlsx)</button>
   <button id="downloadSel">선택 다운로드 (.xlsx)</button>
+  <button id="deleteSel" style="background:#e74c3c;color:white;">선택 삭제</button>
+  <button id="deleteAll" style="background:#c0392b;color:white;">전체 삭제</button>
 
   <table id="respTable">
     <thead>
@@ -108,6 +117,7 @@
     { big: "", mid: "이미지메이킹", text: "본인 이미지에 맞게 복장과 스타일은 깔끔하고 준수한 편인가요?" },
     { big: "개선/성장\n가능성", mid: "가능성", text: "위 설문 중 현재 부족한점은 개선하고 성장할 가능성이 보이나요?" }
     ];
+
     const filledBig = [], filledMid = [];
     questions.forEach((q, i) => {
       filledBig[i] = q.big || (i > 0 ? filledBig[i - 1] : '');
@@ -126,6 +136,7 @@
     // 3) 응답 목록 렌더링
     const tbody = document.querySelector('#respTable tbody');
     let allResponses = [];
+
     db.collection('responses').orderBy('time').get().then(snapshot => {
       snapshot.forEach(doc => {
         const r = { id: doc.id, ...doc.data() };
@@ -168,6 +179,8 @@
       });
     }).catch(console.error);
 
+
+
     // 4) ExcelJS 기반 다운로드 (멀티시트)
     async function triggerDownload(responses) {
       const hdrLabels = [
@@ -176,10 +189,10 @@
       ];
       const workbook = new ExcelJS.Workbook();
 
-      for (const r of responses) {
-        // 1) 새 시트
-        const name = `${r.part}_${r.manager}_${r.name}`.substring(0, 31);
-        const sheet = workbook.addWorksheet(name);
+      responses.forEach((r, idx) => {
+        // idx는 0부터 시작하므로, 보기 좋게 1을 더해줍니다.
+        const sheetName = `${r.part}_${r.manager}_${r.name}_${idx + 1}`.substring(0, 31);
+        const sheet = workbook.addWorksheet(sheetName);
 
         sheet.getCell('A1').value = '부서';
         sheet.getCell('B1').value = '평가자';
@@ -484,7 +497,7 @@
           right: { style: 'thin' }
         };
 
-      }
+      });
 
       //
       // 8) 다운로드
@@ -503,6 +516,114 @@
       URL.revokeObjectURL(url);
     }
 
+    function renderTable(responses) {
+      const tbody = document.querySelector('#respTable tbody');
+      tbody.innerHTML = ''; // 기존 행 모두 삭제
+
+      responses.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+
+        // 번호
+        const noTd = document.createElement('td');
+        noTd.textContent = idx + 1;
+        tr.appendChild(noTd);
+
+        // 체크박스
+        const tdChk = document.createElement('td');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox'; chk.classList.add('rowChk'); chk.dataset.id = r.id;
+        tdChk.appendChild(chk); tr.appendChild(tdChk);
+
+        // part / manager / name
+        ['part', 'manager', 'name'].forEach(key => {
+          const td = document.createElement('td');
+          td.textContent = r[key] || '';
+          tr.appendChild(td);
+        });
+
+        // 다운로드 버튼
+        const tdBtn = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = '다운로드';
+        btn.addEventListener('click', () => triggerDownload([r]));
+        tdBtn.appendChild(btn);
+        tr.appendChild(tdBtn);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 3) 초기 데이터 로드 & 렌더링
+    db.collection('responses').orderBy('time').get()
+      .then(snapshot => {
+        allResponses = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        renderTable(allResponses);
+      })
+      .catch(console.error);
+
+    // 4) 필터 버튼 핸들러
+    document.getElementById('btnFilter').addEventListener('click', () => {
+      const s = document.getElementById('startDate').value;
+      const e = document.getElementById('endDate').value;
+      if (!s || !e) {
+        return alert('시작일과 종료일을 모두 선택하세요.');
+      }
+      const start = new Date(s);
+      const end = new Date(e);
+      // 종료일의 23:59:59 까지 포함
+      end.setHours(23, 59, 59, 999);
+
+      const filtered = allResponses.filter(r => {
+        if (!r.time) return false;
+        const d = r.time.toDate();
+        return d >= start && d <= end;
+      });
+      renderTable(filtered);
+    });
+
+    // 6) 선택 삭제
+    document.getElementById('deleteSel').addEventListener('click', async () => {
+      // 체크된 id 모으기
+      const selIds = Array.from(document.querySelectorAll('.rowChk:checked'))
+        .map(cb => cb.dataset.id);
+      if (!selIds.length) return alert('삭제할 항목을 선택하세요.');
+      if (!confirm(`선택한 ${selIds.length}건을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+
+      try {
+        // Firestore 에서 일괄 삭제
+        await Promise.all(selIds.map(id =>
+          db.collection('responses').doc(id).delete()
+        ));
+        // allResponses 에서도 제거
+        allResponses = allResponses.filter(r => !selIds.includes(r.id));
+        renderTable(allResponses);
+        alert('선택된 항목을 삭제했습니다.');
+      } catch (err) {
+        console.error(err);
+        alert('삭제 중 오류가 발생했습니다.');
+      }
+    });
+
+    // 7) 전체 삭제
+    document.getElementById('deleteAll').addEventListener('click', async () => {
+      if (!confirm('모든 설문 응답을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+
+      try {
+        // Firestore 에서 전체 문서 삭제
+        const snap = await db.collection('responses').get();
+        await Promise.all(snap.docs.map(doc => doc.ref.delete()));
+        // 로컬 데이터 비우고 테이블 리렌더
+        allResponses = [];
+        renderTable(allResponses);
+        alert('모든 응답을 삭제했습니다.');
+      } catch (err) {
+        console.error(err);
+        alert('전체 삭제 중 오류가 발생했습니다.');
+      }
+    });
 
   </script>
 </body>
