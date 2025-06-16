@@ -573,7 +573,7 @@
 
     // 3) 초기 데이터 로드 & 렌더링
     db.collection('responses')
-      .orderBy('time', 'desc')   // 원하는 정렬 순으로
+      .orderBy('time', 'asc')   // desc 최신순 asc 오래된순
       .get()
       .then(snapshot => {
         // allResponses 에 한 번에 담기
