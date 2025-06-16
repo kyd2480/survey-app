@@ -584,6 +584,18 @@
       renderTable(filtered);
     });
 
+    // 5) 필터 해제 버튼
+    document.getElementById('btnClearFilter').addEventListener('click', () => {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      renderTable(allResponses);
+    });
+
+    // 6) chkAll 토글 (렌더링 함수 바깥에서)
+    document.getElementById('chkAll').addEventListener('change', e => {
+      document.querySelectorAll('.rowChk').forEach(cb => cb.checked = e.target.checked);
+    });
+
     // 6) 선택 삭제
     document.getElementById('deleteSel').addEventListener('click', async () => {
       // 체크된 id 모으기
