@@ -50,6 +50,24 @@
   <div style="margin-bottom:1rem;">
     <label>시작일: <input type="date" id="startDate"></label>
     <label style="margin-left:1rem;">종료일: <input type="date" id="endDate"></label>
+    <label style="margin-left:1rem;">
+      파트:
+      <select id="filterPart">
+        <option value="">전체</option>
+      </select>
+    </label>
+    <label style="margin-left:1rem;">
+      평가자:
+      <select id="filterManager">
+        <option value="">전체</option>
+      </select>
+    </label>
+    <label style="margin-left:1rem;">
+      대상자:
+      <select id="filterName">
+        <option value="">전체</option>
+      </select>
+    </label>
     <button id="btnFilter" style="margin-left:1rem;">조회</button>
     <button id="btnClearFilter" style="margin-left:0.5rem;">필터 해제</button>
   </div>
@@ -62,12 +80,12 @@
   <table id="respTable">
     <thead>
       <tr>
-        <th>number</th>
+        <th>No.</th>
         <th><input type="checkbox" id="chkAll"></th>
         <th>파트</th>
         <th>평가자</th>
         <th>대상자</th>
-        <th>다운로드</th>
+        <th>다운</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -554,16 +572,25 @@
     }
 
     // 3) 초기 데이터 로드 & 렌더링
-    db.collection('responses').orderBy('time').get()
+    db.collection('responses')
+      .orderBy('time', 'desc')   // 원하는 정렬 순으로
+      .get()
       .then(snapshot => {
-        allResponses = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        // allResponses 에 한 번에 담기
+        allResponses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // ❷ Part/Manager/Name 필터용 SELECT 박스 채우기
+        const parts = new Set(allResponses.map(r => r.part));
+        const managers = new Set(allResponses.map(r => r.manager));
+        const names = new Set(allResponses.map(r => r.name));
+        populateSelect('filterPart', parts);
+        populateSelect('filterManager', managers);
+        populateSelect('filterName', names);
+
+        // ❸ 테이블 렌더
         renderTable(allResponses);
       })
       .catch(console.error);
-
     // 4) 필터 버튼 핸들러
     document.getElementById('btnFilter').addEventListener('click', () => {
       const s = document.getElementById('startDate').value;
@@ -636,6 +663,52 @@
         alert('전체 삭제 중 오류가 발생했습니다.');
       }
     });
+
+    // ① unique 값 뽑아서 셀렉트 박스 채우기
+    function populateSelect(id, values) {
+      const sel = document.getElementById(id);
+      // 기존 옵션(전체) 빼고 모두 삭제
+      sel.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+      Array.from(values).sort().forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ② 필터 조건 조합 → renderTable 호출
+    function applyFilters() {
+      let filtered = allResponses;
+
+      // 날짜 필터
+      const s = document.getElementById('startDate').value;
+      const e = document.getElementById('endDate').value;
+      if (s && e) {
+        const start = new Date(s);
+        const end = new Date(e);
+        end.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(r => {
+          const t = r.time?.toDate?.() || new Date(0);
+          return t >= start && t <= end;
+        });
+      }
+
+      // 파트 필터
+      const partVal = document.getElementById('filterPart').value;
+      if (partVal) filtered = filtered.filter(r => r.part === partVal);
+
+      // 평가자 필터
+      const mgrVal = document.getElementById('filterManager').value;
+      if (mgrVal) filtered = filtered.filter(r => r.manager === mgrVal);
+
+      // 대상자 필터
+      const nameVal = document.getElementById('filterName').value;
+      if (nameVal) filtered = filtered.filter(r => r.name === nameVal);
+
+      renderTable(filtered);
+    }
+
 
   </script>
 </body>
